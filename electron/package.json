@@ -1,0 +1,8 @@
+{
+  "name": "trpg-log-editor-client",
+  "version": "1.0.0",
+  "description": "Electron client for TRPG Log Editor",
+  "main": "main.js",
+  "author": "TRPG Log Editor",
+  "license": "UNLICENSED"
+}

@@ -1,0 +1,424 @@
+:root {
+  color: #1d2428;
+  background: #f5f7f6;
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 16px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.admin-shell,
+.auth-shell,
+.center-state {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.admin-shell {
+  align-items: flex-start;
+  display: grid;
+  gap: 16px;
+  justify-items: center;
+}
+
+.admin-topbar {
+  align-items: center;
+  display: flex;
+  justify-content: flex-end;
+  max-width: 1180px;
+  width: 100%;
+}
+
+.admin-topbar span {
+  color: #51605a;
+  margin-right: 12px;
+}
+
+.admin-grid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(320px, 0.85fr) minmax(360px, 1.15fr);
+  max-width: 1180px;
+  width: 100%;
+}
+
+.upload-panel,
+.auth-panel,
+.project-panel {
+  background: #ffffff;
+  border: 1px solid #dce4df;
+  border-radius: 8px;
+  box-shadow: 0 20px 50px rgba(25, 41, 35, 0.08);
+  display: grid;
+  gap: 14px;
+  max-width: 380px;
+  padding: 28px;
+  width: 100%;
+}
+
+.project-panel {
+  max-width: none;
+}
+
+.upload-panel {
+  max-width: none;
+}
+
+.upload-panel header,
+.panel-header {
+  align-items: center;
+  border-bottom: 1px solid #e4ebe7;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+  padding-bottom: 12px;
+}
+
+.auth-panel h1,
+.upload-panel h1,
+.topbar h1,
+.project-panel h2 {
+  font-size: 22px;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.auth-icon {
+  align-items: center;
+  background: #e4f0ea;
+  border-radius: 8px;
+  color: #1d6b4a;
+  display: inline-flex;
+  height: 48px;
+  justify-content: center;
+  width: 48px;
+}
+
+label {
+  color: #51605a;
+  font-size: 14px;
+}
+
+input,
+select,
+textarea {
+  border: 1px solid #bfccc6;
+  border-radius: 6px;
+  color: #1d2428;
+  min-width: 0;
+  outline: none;
+  padding: 10px 12px;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: #1d6b4a;
+  box-shadow: 0 0 0 3px rgba(29, 107, 74, 0.15);
+}
+
+.primary-button,
+.ghost-button,
+.icon-button {
+  align-items: center;
+  border: 0;
+  border-radius: 6px;
+  display: inline-flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.primary-button {
+  background: #1d6b4a;
+  color: #ffffff;
+  min-height: 42px;
+  padding: 10px 14px;
+}
+
+.ghost-button {
+  background: #eef3f0;
+  color: #28423a;
+  min-height: 32px;
+  padding: 6px 10px;
+}
+
+.icon-button {
+  background: #ffffff;
+  border: 1px solid #d7e0dc;
+  color: #28423a;
+  height: 38px;
+  width: 38px;
+}
+
+.icon-button.danger {
+  color: #a3372f;
+}
+
+.ghost-link,
+.icon-link {
+  align-items: center;
+  background: #eef3f0;
+  border-radius: 6px;
+  color: #28423a;
+  display: inline-flex;
+  justify-content: center;
+  min-height: 32px;
+  padding: 6px 10px;
+  text-decoration: none;
+}
+
+.icon-link {
+  height: 38px;
+  padding: 0;
+  width: 38px;
+}
+
+.editor-shell {
+  margin: 0 auto;
+  max-width: 980px;
+  padding: 18px;
+}
+
+.topbar {
+  align-items: center;
+  background: #f5f7f6;
+  border-bottom: 1px solid #dce4df;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 18px;
+  padding: 12px 0;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.topbar p {
+  color: #66746f;
+  margin: 4px 0 0;
+}
+
+.log-list {
+  display: grid;
+  gap: 10px;
+}
+
+.log-block {
+  background: #ffffff;
+  border: 1px solid #dce4df;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.log-block.edited {
+  border-color: #95c9b1;
+}
+
+.block-meta,
+.block-actions {
+  align-items: center;
+  color: #697871;
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 12px;
+  gap: 8px;
+}
+
+.block-body {
+  margin: 10px 0;
+  overflow-wrap: anywhere;
+}
+
+.rendered-html {
+  line-height: 1.55;
+}
+
+.rendered-html img {
+  display: block;
+  height: auto;
+  max-width: 100%;
+}
+
+.handout-text {
+  background: #f6faf8;
+  border: 1px dashed #a9bbb2;
+  border-radius: 8px;
+  color: #28423a;
+  display: inline-flex;
+  font-weight: 600;
+  line-height: 1.5;
+  padding: 8px 10px;
+}
+
+.editor-row {
+  align-items: stretch;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) 38px;
+}
+
+textarea {
+  min-height: 92px;
+  resize: vertical;
+  width: 100%;
+}
+
+.upload-panel textarea {
+  min-height: 180px;
+}
+
+.result-panel {
+  background: #f6faf8;
+  border: 1px solid #dce7e1;
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+}
+
+.result-panel h2 {
+  font-size: 16px;
+  margin: 0;
+}
+
+.result-panel p {
+  color: #5e6c66;
+  margin: 0;
+}
+
+.result-panel a {
+  color: #1d6b4a;
+  overflow-wrap: anywhere;
+}
+
+.result-panel code {
+  background: #ffffff;
+  border: 1px solid #dce4df;
+  border-radius: 6px;
+  color: #1d2428;
+  padding: 8px;
+}
+
+.project-list {
+  display: grid;
+  gap: 10px;
+}
+
+.project-item {
+  align-items: center;
+  border: 1px solid #e0e7e3;
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 12px;
+}
+
+.project-item h3 {
+  font-size: 16px;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.project-item p,
+.muted-text {
+  color: #66746f;
+  margin: 4px 0 0;
+}
+
+.compact-setting {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.compact-setting input {
+  height: 32px;
+  padding: 4px 8px;
+  width: 72px;
+}
+
+.compact-setting select {
+  height: 32px;
+  padding: 4px 8px;
+}
+
+.project-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.error-text {
+  color: #a3372f;
+  font-size: 14px;
+  margin: 0;
+}
+
+.saved-text {
+  color: #1d6b4a;
+  font-size: 13px;
+}
+
+.spin {
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 620px) {
+  .admin-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .editor-shell {
+    padding: 12px;
+  }
+
+  .auth-panel,
+  .upload-panel,
+  .project-panel {
+    padding: 22px;
+  }
+
+  .project-item {
+    grid-template-columns: 1fr;
+  }
+
+  .project-actions {
+    justify-content: flex-start;
+  }
+}

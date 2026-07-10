@@ -1,0 +1,17 @@
+appId: com.trpglogeditor.app
+productName: TRPG Log Editor
+electronVersion: 43.1.0
+directories:
+  output: ../release
+npmRebuild: false
+nodeGypRebuild: false
+files:
+  - "**/*"
+win:
+  target:
+    - nsis
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true

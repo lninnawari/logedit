@@ -1,0 +1,60 @@
+{
+  "name": "logedit",
+  "version": "1.0.0",
+  "description": "TRPG log editing and correction server",
+  "main": "src/server.js",
+  "scripts": {
+    "dev": "node --watch src/server.js",
+    "dev:client": "vite --host 127.0.0.1",
+    "electron": "electron electron/main.js",
+    "electron:pack": "electron-builder --projectDir electron --config electron-builder.yml --dir",
+    "electron:dist": "electron-builder --projectDir electron --config electron-builder.yml",
+    "start": "node src/server.js",
+    "build": "vite build",
+    "render:build": "npm run prisma:generate && npm run build",
+    "render:start": "npm run prisma:deploy && npm start",
+    "test": "node --test",
+    "release:check": "npm run prisma:validate && npm run prisma:generate && npm test && npm run render:build && npm run electron:pack",
+    "analyze:html": "node scripts/analyze-html.js",
+    "generate:secret": "node scripts/generate-jwt-secret.js",
+    "e2e:sample": "node scripts/e2e-sample.js",
+    "seed:admin": "node scripts/seed-admin.js",
+    "prisma:validate": "prisma validate",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev --name init",
+    "prisma:deploy": "prisma migrate deploy"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "UNLICENSED",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "^7.8.0",
+    "@prisma/client": "^7.8.0",
+    "@vitejs/plugin-react": "^6.0.3",
+    "bcrypt": "^6.0.0",
+    "cheerio": "^1.2.0",
+    "cors": "^2.8.6",
+    "dompurify": "^3.4.11",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "helmet": "^8.2.0",
+    "jsonwebtoken": "^9.0.3",
+    "lucide-react": "^1.24.0",
+    "morgan": "^1.11.0",
+    "multer": "^2.2.0",
+    "pg": "^8.22.0",
+    "prisma": "^7.8.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "vite": "^8.1.4",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "electron": "^43.1.0",
+    "electron-builder": "^26.15.3"
+  }
+}

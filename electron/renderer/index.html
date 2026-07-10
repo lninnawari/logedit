@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; connect-src http: https:; style-src 'self'; script-src 'self';"
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TRPG Log Editor</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <aside class="sidebar">
+        <h1>TRPG Log Editor</h1>
+        <form id="serverForm" class="stack">
+          <label for="serverUrl">서버 URL</label>
+          <input id="serverUrl" placeholder="https://example.onrender.com" />
+          <button type="submit">저장</button>
+        </form>
+        <div id="serverState" class="state"></div>
+        <form id="setupForm" class="stack hidden">
+          <h2>관리자 계정 만들기</h2>
+          <input id="setupEmail" placeholder="email@example.com" />
+          <input id="setupPassword" type="password" placeholder="비밀번호" />
+          <input id="setupConfirm" type="password" placeholder="비밀번호 확인" />
+          <button type="submit">생성</button>
+        </form>
+        <form id="loginForm" class="stack hidden">
+          <h2>관리자 로그인</h2>
+          <input id="email" placeholder="email@example.com" />
+          <input id="password" type="password" placeholder="비밀번호" />
+          <button type="submit">로그인</button>
+        </form>
+        <section id="sessionPanel" class="stack hidden">
+          <div id="adminEmail" class="muted"></div>
+          <button id="logoutButton" type="button">로그아웃</button>
+        </section>
+      </aside>
+      <section class="content">
+        <form id="uploadForm" class="panel hidden">
+          <header>
+            <h2>로그 업로드</h2>
+          </header>
+          <label for="title">제목</label>
+          <input id="title" placeholder="세션 이름" />
+          <label for="sharePassword">공유 비밀번호</label>
+          <input id="sharePassword" placeholder="비워두면 자동 생성" />
+          <label for="htmlFile">HTML 파일</label>
+          <input id="htmlFile" type="file" accept=".html,text/html" />
+          <label for="htmlText">HTML 붙여넣기</label>
+          <textarea id="htmlText"></textarea>
+          <button type="submit">업로드</button>
+          <div id="uploadResult" class="result"></div>
+        </form>
+        <section id="projectsPanel" class="panel hidden">
+          <header>
+            <h2>프로젝트</h2>
+            <button id="refreshProjects" type="button">새로고침</button>
+          </header>
+          <div id="projects" class="project-list"></div>
+        </section>
+      </section>
+    </main>
+    <script src="./renderer.js"></script>
+  </body>
+</html>
