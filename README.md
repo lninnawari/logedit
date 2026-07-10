@@ -2,7 +2,7 @@
 
 TRPG chat log editor and correction tool for turning HTML chat archives into clean TXT manuscripts.
 
-This repository is currently fixed to the Basic Distribution Edition. See `docs/editions.md` for edition boundaries, `docs/deployment.md` for Render/Neon deployment, `docs/buyer-quickstart.ko.md` for the buyer quickstart, `docs/electron.md` for the Electron client, `docs/sales-distribution.md` for buyer-facing distribution planning, and `docs/security.md` for security notes.
+This repository is now aimed at the hosted Client Upload Form Edition. The operator runs one Render/Neon-backed web service, clients submit logs through `/upload`, and the operator manages submitted projects from the admin page. See `docs/editions.md` for edition boundaries, `docs/deployment.md` for Render/Neon deployment, and `docs/security.md` for security notes.
 
 ## Current Stack
 
@@ -61,6 +61,7 @@ npm run generate:secret
 The app serves:
 
 - Admin/upload page: `http://localhost:3000/`
+- Public client upload page: `http://localhost:3000/upload`
 - Shared editor page: `http://localhost:3000/share/:projectId`
 - Health check: `http://localhost:3000/health`
 

@@ -3,11 +3,10 @@
 ## Current Edition
 
 - Product edition boundaries are defined in `docs/editions.md`.
-- Current codebase is fixed to the Basic Distribution Edition.
-- It includes `AdminUser`, first-run admin setup, admin login, admin-only project management, shared editing, and TXT preview/download.
-- It does not include `Client`, `ProjectClient`, `/api/clients`, client intake, or public client upload.
-- It is not yet Render-deployed production. Local server + Neon DB have been verified.
-- Client Upload Form Edition remains a future expansion from this basic baseline.
+- Current codebase has been expanded to the hosted Client Upload Form Edition.
+- It includes `AdminUser`, first-run admin setup, admin login, admin project management, public client upload, shared editing, and TXT preview/download.
+- It includes `Client`, `ProjectClient`, `/api/clients`, `/api/intake/projects`, and public `/upload`.
+- Production Render deployment exists at `https://logedit.onrender.com/`; the new intake code still needs to be pushed and redeployed.
 
 ## Spec Phase Status
 
@@ -22,7 +21,7 @@
 - Phase 9 Project delete/cascade: done and verified through e2e.
 - Phase 10 Electron sales app: shell and installer packaging config implemented.
 - Phase 11 Render/deployment preparation: config and guide added; actual Render deployment is still pending.
-- Phase 12 Personal admin features: deferred to the Client Upload Form Edition.
+- Phase 12 Client upload intake: implemented for public upload, requester storage, and admin queue visibility.
 
 ## Done
 
@@ -67,6 +66,11 @@
 - End-to-end sample test script with admin login support.
 - Shared editor browser save flow fixed so admin/share authenticated JSON requests keep `Content-Type: application/json`.
 - Shared editor edit drafts strip leading speaker labels before saving, preventing duplicated speaker text in generic HTML fallback blocks.
+- Public client upload page at `/upload`.
+- Public intake API at `/api/intake/projects`.
+- Admin client lookup API at `/api/clients`.
+- `Client` and `ProjectClient` database models restored for hosted intake.
+- Admin project list displays requester information and supports `submitted`/`reviewing` statuses.
 
 ## Verified
 
@@ -87,15 +91,17 @@
 - `npm run release:check` verified after granting network access for Electron packaging.
 - Cocofolia sample e2e re-verified with Neon network access: upload -> share verify -> edit -> preview/download -> delete cascade.
 - Manual browser QA verified: admin login, HTML paste upload, share password verification, block edit/save, and QA project cleanup.
+- Client intake API verified against Neon: public upload -> submitted project -> admin list with requester details -> cleanup.
 
 ## Needs User Input
 
 - Actual Render/GitHub/Neon account actions for production deployment.
+- Push hosted intake changes and redeploy Render.
 - Additional non-Roll20/non-Cocofolia TRPG HTML samples, if available.
 
 ## Next
 
+- Push hosted intake changes and redeploy Render.
+- Production smoke test for `/upload`.
 - Parser tuning against additional export formats.
-- Actual Render deployment and production smoke test.
-- Electron packaging polish: custom icon.
-- Buyer-facing screenshots/gifs for sales documentation.
+- Hosted-service product/pricing/ad strategy.

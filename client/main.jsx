@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import DOMPurify from "dompurify";
-import { Check, Download, Edit3, KeyRound, Loader2, LogOut, RefreshCw, Save, Trash2 } from "lucide-react";
+import { Check, Download, Edit3, KeyRound, Loader2, LogOut, RefreshCw, Save, Send, Trash2 } from "lucide-react";
 
 import "./styles.css";
 
@@ -12,6 +12,10 @@ function getProjectId() {
 
 function isSharePath() {
   return /^\/share\/[^/]+/.test(window.location.pathname);
+}
+
+function isIntakePath() {
+  return window.location.pathname === "/upload";
 }
 
 async function api(path, options = {}) {
@@ -201,6 +205,94 @@ function AdminSetup({ onSetup }) {
   );
 }
 
+function ClientUploadPage() {
+  const [clientName, setClientName] = useState("");
+  const [clientEmail, setClientEmail] = useState("");
+  const [contact, setContact] = useState("");
+  const [title, setTitle] = useState("");
+  const [notes, setNotes] = useState("");
+  const [file, setFile] = useState(null);
+  const [html, setHtml] = useState("");
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  async function submit(event) {
+    event.preventDefault();
+    setError("");
+    setResult(null);
+    setIsSubmitting(true);
+
+    try {
+      const formData = new FormData();
+      formData.set("clientName", clientName);
+      if (clientEmail) formData.set("clientEmail", clientEmail);
+      if (contact) formData.set("contact", contact);
+      if (notes) formData.set("notes", notes);
+      formData.set("title", title || `${clientName} 의뢰 로그`);
+      if (file) formData.set("htmlFile", file);
+      if (!file && html) formData.set("html", html);
+
+      const response = await fetch("/api/intake/projects", {
+        method: "POST",
+        body: formData,
+      });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error || "업로드에 실패했습니다.");
+
+      setResult(body);
+      setClientName("");
+      setClientEmail("");
+      setContact("");
+      setTitle("");
+      setNotes("");
+      setFile(null);
+      setHtml("");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  return (
+    <main className="public-shell">
+      <form className="intake-panel" onSubmit={submit}>
+        <header>
+          <h1>로그 의뢰 업로드</h1>
+          <p>Roll20 또는 Cocofolia HTML 로그를 올려주세요.</p>
+        </header>
+        <label htmlFor="clientName">이름</label>
+        <input id="clientName" value={clientName} onChange={(event) => setClientName(event.target.value)} required />
+        <label htmlFor="clientEmail">이메일</label>
+        <input id="clientEmail" type="email" value={clientEmail} onChange={(event) => setClientEmail(event.target.value)} />
+        <label htmlFor="contact">연락처 / 전달사항</label>
+        <textarea id="contact" value={contact} onChange={(event) => setContact(event.target.value)} placeholder="트위터, 디스코드, 기타 연락 가능한 정보" />
+        <label htmlFor="requestTitle">로그 제목</label>
+        <input id="requestTitle" value={title} onChange={(event) => setTitle(event.target.value)} placeholder="세션 이름" />
+        <label htmlFor="requestNotes">요청 메모</label>
+        <textarea id="requestNotes" value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="특별히 봐야 할 부분이 있다면 적어주세요." />
+        <label htmlFor="requestFile">HTML 파일</label>
+        <input id="requestFile" type="file" accept=".html,text/html" onChange={(event) => setFile(event.target.files?.[0] || null)} />
+        <label htmlFor="requestHtml">HTML 붙여넣기</label>
+        <textarea id="requestHtml" value={html} onChange={(event) => setHtml(event.target.value)} placeholder="파일 대신 HTML을 붙여넣을 수 있습니다." />
+        {error ? <p className="error-text">{error}</p> : null}
+        <button className="primary-button" disabled={isSubmitting || !clientName || (!file && !html)}>
+          {isSubmitting ? <Loader2 className="spin" size={18} /> : <Send size={18} />}
+          의뢰 제출
+        </button>
+        {result ? (
+          <section className="result-panel">
+            <h2>접수되었습니다</h2>
+            <p>{result.blockCount.toLocaleString()}개 블록을 읽었습니다.</p>
+            <code>{result.projectId}</code>
+          </section>
+        ) : null}
+      </form>
+    </main>
+  );
+}
+
 function UploadPanel({ adminToken, onUploaded }) {
   const [title, setTitle] = useState("");
   const [password, setPassword] = useState("");
@@ -328,6 +420,17 @@ function ProjectList({ adminToken, refreshKey, onDeleted }) {
     setProjects((current) => current.map((project) => (project.id === projectId ? { ...project, status } : project)));
   }
 
+  async function resetSharePassword(projectId) {
+    const password = window.prompt("새 공유 비밀번호를 입력하세요. 최소 6자입니다.");
+    if (!password) return;
+    await api(`/api/projects/${projectId}/share-link/password`, {
+      method: "PATCH",
+      headers: { Authorization: `Bearer ${adminToken}` },
+      body: JSON.stringify({ password }),
+    });
+    window.alert("공유 비밀번호가 변경되었습니다.");
+  }
+
   async function openPreview(projectId) {
     const text = await fetchAdminText(`/api/projects/${projectId}/preview`, adminToken);
     const previewWindow = window.open("", "_blank", "noopener,noreferrer");
@@ -368,9 +471,22 @@ function ProjectList({ adminToken, refreshKey, onDeleted }) {
                 <p>
                   {project.status} · {project.blockCount.toLocaleString()} blocks
                 </p>
+                {project.clients?.length ? (
+                  <div className="client-summary">
+                    {project.clients.map((client) => (
+                      <p key={client.id}>
+                        의뢰인: {client.name}
+                        {client.email ? ` / ${client.email}` : ""}
+                        {client.contact ? ` / ${client.contact}` : ""}
+                      </p>
+                    ))}
+                  </div>
+                ) : null}
                 <label className="compact-setting">
                   상태
                   <select value={project.status} onChange={(event) => updateStatus(project.id, event.target.value)}>
+                    <option value="submitted">submitted</option>
+                    <option value="reviewing">reviewing</option>
                     <option value="editing">editing</option>
                     <option value="confirmed">confirmed</option>
                     <option value="downloaded">downloaded</option>
@@ -407,6 +523,9 @@ function ProjectList({ adminToken, refreshKey, onDeleted }) {
                 </a>
                 <button className="ghost-button" onClick={() => openPreview(project.id)}>
                   미리보기
+                </button>
+                <button className="ghost-button" onClick={() => resetSharePassword(project.id)}>
+                  비밀번호 변경
                 </button>
                 <button className="icon-button" onClick={() => downloadTxt(project.id)} title="TXT 다운로드">
                   <Download size={17} />
@@ -641,6 +760,10 @@ function App() {
   function handleToken(nextToken) {
     window.sessionStorage.setItem(`share:${projectId}`, nextToken);
     setToken(nextToken);
+  }
+
+  if (isIntakePath()) {
+    return <ClientUploadPage />;
   }
 
   if (!isSharePath()) {

@@ -133,17 +133,18 @@ Needs implementation:
 
 ## Current Repository State
 
-The current repository is fixed to the Basic Distribution Edition:
+The current repository has been expanded from the Basic Distribution baseline to the Client Upload Form Edition:
 
 - It has `AdminUser`, first-run admin setup, and admin login.
 - It has admin-only project upload/management.
 - It has shared participant editing.
-- It has no `Client` or `ProjectClient` models in the current Prisma schema.
-- It has no `/api/clients` route.
-- It has no client registration UI or project-client linking UI.
-- It does not have a public client upload form.
+- It has `Client` and `ProjectClient` models in the Prisma schema.
+- It has `/api/clients` for admin-side client lookup.
+- It has `/api/intake/projects` for public client-submitted uploads.
+- It has a public `/upload` page for client log intake.
+- Client-submitted projects start with `submitted` status and appear in the admin project list with requester details.
 
 Therefore:
 
-- It is the Basic Distribution Edition baseline.
-- The Client Upload Form Edition should be built later by adding `Client`, `ProjectClient`, public upload/intake, and admin intake queue features on top of this baseline.
+- It is now the hosted Client Upload Form Edition baseline.
+- The earlier Basic Distribution Edition can still be recovered later by hiding/removing public intake, `Client`, and `ProjectClient` features if a downloadable buyer-deployed version is needed.

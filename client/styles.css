@@ -33,6 +33,7 @@ button:disabled {
 
 .admin-shell,
 .auth-shell,
+.public-shell,
 .center-state {
   align-items: center;
   display: flex;
@@ -71,6 +72,7 @@ button:disabled {
 
 .upload-panel,
 .auth-panel,
+.intake-panel,
 .project-panel {
   background: #ffffff;
   border: 1px solid #dce4df;
@@ -91,7 +93,16 @@ button:disabled {
   max-width: none;
 }
 
+.public-shell {
+  align-items: flex-start;
+}
+
+.intake-panel {
+  max-width: 720px;
+}
+
 .upload-panel header,
+.intake-panel header,
 .panel-header {
   align-items: center;
   border-bottom: 1px solid #e4ebe7;
@@ -99,6 +110,17 @@ button:disabled {
   justify-content: space-between;
   margin-bottom: 4px;
   padding-bottom: 12px;
+}
+
+.intake-panel header {
+  align-items: flex-start;
+  display: grid;
+  gap: 4px;
+}
+
+.intake-panel header p {
+  color: #66746f;
+  margin: 0;
 }
 
 .auth-panel h1,
@@ -293,6 +315,14 @@ textarea {
   min-height: 180px;
 }
 
+.intake-panel textarea {
+  min-height: 120px;
+}
+
+#requestHtml {
+  min-height: 220px;
+}
+
 .result-panel {
   background: #f6faf8;
   border: 1px solid #dce7e1;
@@ -350,6 +380,18 @@ textarea {
 .muted-text {
   color: #66746f;
   margin: 4px 0 0;
+}
+
+.client-summary {
+  background: #f6faf8;
+  border: 1px solid #dce7e1;
+  border-radius: 6px;
+  margin-top: 8px;
+  padding: 8px 10px;
+}
+
+.client-summary p {
+  margin: 0;
 }
 
 .compact-setting {

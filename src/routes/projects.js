@@ -25,7 +25,7 @@ const createProjectSchema = z.object({
 });
 
 const updateStatusSchema = z.object({
-  status: z.enum(["editing", "confirmed", "downloaded"]),
+  status: z.enum(["submitted", "reviewing", "editing", "confirmed", "downloaded"]),
 });
 
 const updateSettingsSchema = z
@@ -59,6 +59,11 @@ router.get(
       include: {
         shareLink: { select: { id: true, createdAt: true } },
         correctionSettings: true,
+        projectClients: {
+          include: {
+            client: true,
+          },
+        },
         _count: { select: { blocks: true } },
       },
     });
@@ -74,6 +79,14 @@ router.get(
         sharePath: `/share/${project.id}`,
         shareLinkId: project.shareLink?.id || null,
         correctionSettings: project.correctionSettings,
+        clients: project.projectClients.map((link) => ({
+          id: link.client.id,
+          name: link.client.name,
+          email: link.client.email,
+          contact: link.client.contact,
+          notes: link.client.notes,
+          role: link.role,
+        })),
       })),
     });
   })
@@ -138,6 +151,11 @@ router.get(
       include: {
         shareLink: { select: { id: true, createdAt: true } },
         correctionSettings: true,
+        projectClients: {
+          include: {
+            client: true,
+          },
+        },
         _count: { select: { blocks: true } },
       },
     });

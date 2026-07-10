@@ -6,6 +6,8 @@ const fs = require("fs");
 const path = require("path");
 
 const { adminRouter } = require("./routes/admin");
+const { clientRouter } = require("./routes/clients");
+const { intakeRouter } = require("./routes/intake");
 const { projectRouter } = require("./routes/projects");
 const { setupRouter } = require("./routes/setup");
 const { shareRouter } = require("./routes/share");
@@ -28,6 +30,8 @@ function createApp() {
 
   app.use("/api/setup", setupRouter);
   app.use("/api/admin", adminRouter);
+  app.use("/api/clients", clientRouter);
+  app.use("/api/intake", intakeRouter);
   app.use("/api/projects", projectRouter);
   app.use("/api/share", shareRouter);
 

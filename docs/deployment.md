@@ -1,6 +1,6 @@
-# Basic Distribution Deployment Guide
+# Hosted Web Deployment Guide
 
-This guide is for the Basic Distribution Edition.
+This guide is for the hosted web edition with public client upload.
 
 ## Required Services
 
@@ -52,6 +52,16 @@ Recommended settings if configuring manually:
 3. Create the first admin account.
 4. After setup, the same URL shows the admin login screen.
 
+## Public Upload URL
+
+Clients can submit logs at:
+
+```text
+https://your-render-service.onrender.com/upload
+```
+
+Submitted projects are created with `submitted` status and appear in the admin project list with requester information.
+
 ## Admin Password Changes
 
 The normal distribution flow does not require command-line password setup. If a recovery reset is needed, set `ADMIN_EMAIL` and `ADMIN_PASSWORD` temporarily in the environment and run:
@@ -75,13 +85,9 @@ After deployment:
 7. Return to admin and confirm preview/download includes the edit.
 8. Delete the project and confirm the share link no longer works.
 
-## Basic Edition Boundaries
+## Operator Flow
 
-The Basic Distribution Edition does not include:
-
-- Public client upload form.
-- `/api/clients`.
-- `Client` or `ProjectClient` database models.
-- Client intake queue or approval workflow.
-
-Those belong to the future Client Upload Form Edition.
+- Admin page: `/`
+- Public client upload page: `/upload`
+- Participant edit links: `/share/:projectId`
+- Health check: `/health`
