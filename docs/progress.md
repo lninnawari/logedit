@@ -6,7 +6,7 @@
 - Current codebase has been expanded to the hosted Client Upload Form Edition.
 - It includes `AdminUser`, first-run admin setup, admin login, admin project management, public client upload, shared editing, and TXT preview/download.
 - It includes `Client`, `ProjectClient`, `/api/clients`, `/api/intake/projects`, and public `/upload`.
-- Production Render deployment exists at `https://logedit.onrender.com/`; the new intake code still needs to be pushed and redeployed.
+- Production Render deployment exists at `https://logedit.onrender.com/`; hosted intake code is deployed.
 
 ## Spec Phase Status
 
@@ -20,7 +20,7 @@
 - Phase 8 Shared editing web page: done and verified with manual browser QA.
 - Phase 9 Project delete/cascade: done and verified through e2e.
 - Phase 10 Electron sales app: shell and installer packaging config implemented.
-- Phase 11 Render/deployment preparation: config and guide added; actual Render deployment is still pending.
+- Phase 11 Render/deployment preparation: done; production deployment is live.
 - Phase 12 Client upload intake: implemented for public upload, requester storage, and admin queue visibility.
 
 ## Done
@@ -92,16 +92,15 @@
 - Cocofolia sample e2e re-verified with Neon network access: upload -> share verify -> edit -> preview/download -> delete cascade.
 - Manual browser QA verified: admin login, HTML paste upload, share password verification, block edit/save, and QA project cleanup.
 - Client intake API verified against Neon: public upload -> submitted project -> admin list with requester details -> cleanup.
+- Production `/upload` bundle verified after deployment.
+- Production intake API smoke test succeeded with `201 Created`.
 
 ## Needs User Input
 
-- Actual Render/GitHub/Neon account actions for production deployment.
-- Push hosted intake changes and redeploy Render.
+- Delete the production smoke-test project `660eb365-b109-4c0f-9ce6-dc25fad0cd0b` from the admin page if it is still present.
 - Additional non-Roll20/non-Cocofolia TRPG HTML samples, if available.
 
 ## Next
 
-- Push hosted intake changes and redeploy Render.
-- Production smoke test for `/upload`.
 - Parser tuning against additional export formats.
 - Hosted-service product/pricing/ad strategy.

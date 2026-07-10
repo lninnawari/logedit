@@ -125,11 +125,11 @@ Required:
 - `/api/share/*`
 - `/api/clients/*`
 
-Needs implementation:
+Implemented in the hosted intake baseline:
 
-- Public upload endpoint, for example `/api/intake/projects`.
-- Public upload page, for example `/upload`.
-- Admin intake queue/filtering.
+- Public upload endpoint: `/api/intake/projects`.
+- Public upload page: `/upload`.
+- Admin intake queue visibility through requester details and `submitted`/`reviewing` project statuses.
 
 ## Current Repository State
 
