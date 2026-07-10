@@ -1,6 +1,6 @@
 # Hosted Web Deployment Guide
 
-This guide is for the hosted web edition with public client upload.
+This guide is for the hosted web edition with public original-log upload.
 
 ## Required Services
 
@@ -54,13 +54,13 @@ Recommended settings if configuring manually:
 
 ## Public Upload URL
 
-Clients can submit logs at:
+Log owners can submit original HTML logs at:
 
 ```text
 https://your-render-service.onrender.com/upload
 ```
 
-Submitted projects are created with `submitted` status and appear in the admin project list with requester information.
+Submitted projects appear in the admin project list and can then be edited, previewed, and downloaded as TXT.
 
 ## Admin Password Changes
 
@@ -88,6 +88,6 @@ After deployment:
 ## Operator Flow
 
 - Admin page: `/`
-- Public client upload page: `/upload`
+- Public original-log upload page: `/upload`
 - Participant edit links: `/share/:projectId`
 - Health check: `/health`

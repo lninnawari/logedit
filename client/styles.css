@@ -18,7 +18,8 @@ body {
 button,
 input,
 select,
-textarea {
+textarea,
+.html-paste-box {
   font: inherit;
 }
 
@@ -150,7 +151,8 @@ label {
 
 input,
 select,
-textarea {
+textarea,
+.html-paste-box {
   border: 1px solid #bfccc6;
   border-radius: 6px;
   color: #1d2428;
@@ -161,7 +163,8 @@ textarea {
 
 input:focus,
 select:focus,
-textarea:focus {
+textarea:focus,
+.html-paste-box:focus {
   border-color: #1d6b4a;
   box-shadow: 0 0 0 3px rgba(29, 107, 74, 0.15);
 }
@@ -311,6 +314,19 @@ textarea {
   width: 100%;
 }
 
+.html-paste-box {
+  min-height: 180px;
+  overflow: auto;
+  white-space: pre-wrap;
+  width: 100%;
+}
+
+.html-paste-box:empty::before {
+  color: #8a9792;
+  content: attr(data-placeholder);
+  pointer-events: none;
+}
+
 .upload-panel textarea {
   min-height: 180px;
 }
@@ -380,18 +396,6 @@ textarea {
 .muted-text {
   color: #66746f;
   margin: 4px 0 0;
-}
-
-.client-summary {
-  background: #f6faf8;
-  border: 1px solid #dce7e1;
-  border-radius: 6px;
-  margin-top: 8px;
-  padding: 8px 10px;
-}
-
-.client-summary p {
-  margin: 0;
 }
 
 .compact-setting {

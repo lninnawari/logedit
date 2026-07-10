@@ -3,9 +3,9 @@
 ## Current Edition
 
 - Product edition boundaries are defined in `docs/editions.md`.
-- Current codebase has been expanded to the hosted Client Upload Form Edition.
-- It includes `AdminUser`, first-run admin setup, admin login, admin project management, public client upload, shared editing, and TXT preview/download.
-- It includes `Client`, `ProjectClient`, `/api/clients`, `/api/intake/projects`, and public `/upload`.
+- Current codebase has been expanded to the hosted original-log upload edition.
+- It includes `AdminUser`, first-run admin setup, admin login, admin project management, public original-log upload, shared editing, and TXT preview/download.
+- It includes `/api/intake/projects` and public `/upload` as the original-log upload path.
 - Production Render deployment exists at `https://logedit.onrender.com/`; hosted intake code is deployed.
 
 ## Spec Phase Status
@@ -21,7 +21,7 @@
 - Phase 9 Project delete/cascade: done and verified through e2e.
 - Phase 10 Electron sales app: shell and installer packaging config implemented.
 - Phase 11 Render/deployment preparation: done; production deployment is live.
-- Phase 12 Client upload intake: implemented for public upload, requester storage, and admin queue visibility.
+- Phase 12 Public original-log upload: implemented for public upload and admin project visibility.
 
 ## Done
 
@@ -50,7 +50,7 @@
 - Admin login with JWT-protected operator APIs.
 - First-run browser setup for creating the first administrator account.
 - Admin seed script using `ADMIN_EMAIL` and `ADMIN_PASSWORD`.
-- Project status update UI and API.
+- Project status API for internal workflow values.
 - Removed `Client` and `ProjectClient` from the Basic Distribution Edition schema/API/UI.
 - Render deployment scripts, `render.yaml`, and `docs/deployment.md`.
 - Electron client shell and `docs/electron.md`.
@@ -66,11 +66,11 @@
 - End-to-end sample test script with admin login support.
 - Shared editor browser save flow fixed so admin/share authenticated JSON requests keep `Content-Type: application/json`.
 - Shared editor edit drafts strip leading speaker labels before saving, preventing duplicated speaker text in generic HTML fallback blocks.
-- Public client upload page at `/upload`.
+- Public original-log upload page at `/upload`.
 - Public intake API at `/api/intake/projects`.
-- Admin client lookup API at `/api/clients`.
-- `Client` and `ProjectClient` database models restored for hosted intake.
-- Admin project list displays requester information and supports `submitted`/`reviewing` statuses.
+- Admin project list displays block count and last saved time.
+- Public upload simplified to project title, memo, and HTML only.
+- Pasted HTML is captured from clipboard `text/html` when available instead of being flattened to plain text.
 
 ## Verified
 
@@ -91,7 +91,7 @@
 - `npm run release:check` verified after granting network access for Electron packaging.
 - Cocofolia sample e2e re-verified with Neon network access: upload -> share verify -> edit -> preview/download -> delete cascade.
 - Manual browser QA verified: admin login, HTML paste upload, share password verification, block edit/save, and QA project cleanup.
-- Client intake API verified against Neon: public upload -> submitted project -> admin list with requester details -> cleanup.
+- Public upload API verified against Neon: upload -> project visible in admin list -> cleanup.
 - Production `/upload` bundle verified after deployment.
 - Production intake API smoke test succeeded with `201 Created`.
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import DOMPurify from "dompurify";
 import { Check, Download, Edit3, KeyRound, Loader2, LogOut, RefreshCw, Save, Send, Trash2 } from "lucide-react";
@@ -37,6 +37,42 @@ async function api(path, options = {}) {
   }
 
   return body;
+}
+
+function HtmlPasteInput({ id, value, onChange, placeholder }) {
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (!ref.current || document.activeElement === ref.current) return;
+    if (ref.current.textContent !== value) ref.current.textContent = value;
+  }, [value]);
+
+  function handlePaste(event) {
+    const clipboardHtml = event.clipboardData.getData("text/html");
+    const clipboardText = event.clipboardData.getData("text/plain");
+    const pastedValue = clipboardHtml || clipboardText;
+    if (!pastedValue) return;
+
+    event.preventDefault();
+    document.execCommand("insertText", false, pastedValue);
+    onChange(ref.current?.textContent || "");
+  }
+
+  return (
+    <div
+      id={id}
+      ref={ref}
+      className="html-paste-box"
+      contentEditable
+      data-placeholder={placeholder}
+      role="textbox"
+      aria-multiline="true"
+      tabIndex={0}
+      onInput={(event) => onChange(event.currentTarget.textContent || "")}
+      onPaste={handlePaste}
+      suppressContentEditableWarning
+    />
+  );
 }
 
 function AuthPanel({ projectId, onToken }) {
@@ -205,10 +241,7 @@ function AdminSetup({ onSetup }) {
   );
 }
 
-function ClientUploadPage() {
-  const [clientName, setClientName] = useState("");
-  const [clientEmail, setClientEmail] = useState("");
-  const [contact, setContact] = useState("");
+function PublicUploadPage() {
   const [title, setTitle] = useState("");
   const [notes, setNotes] = useState("");
   const [file, setFile] = useState(null);
@@ -225,11 +258,8 @@ function ClientUploadPage() {
 
     try {
       const formData = new FormData();
-      formData.set("clientName", clientName);
-      if (clientEmail) formData.set("clientEmail", clientEmail);
-      if (contact) formData.set("contact", contact);
       if (notes) formData.set("notes", notes);
-      formData.set("title", title || `${clientName} 의뢰 로그`);
+      formData.set("title", title);
       if (file) formData.set("htmlFile", file);
       if (!file && html) formData.set("html", html);
 
@@ -241,9 +271,6 @@ function ClientUploadPage() {
       if (!response.ok) throw new Error(body.error || "업로드에 실패했습니다.");
 
       setResult(body);
-      setClientName("");
-      setClientEmail("");
-      setContact("");
       setTitle("");
       setNotes("");
       setFile(null);
@@ -259,31 +286,25 @@ function ClientUploadPage() {
     <main className="public-shell">
       <form className="intake-panel" onSubmit={submit}>
         <header>
-          <h1>로그 의뢰 업로드</h1>
-          <p>Roll20 또는 Cocofolia HTML 로그를 올려주세요.</p>
+          <h1>로그 원본 업로드</h1>
+          <p>프로젝트명은 닉네임 - 시나리오 제목 형식으로 적어주세요.</p>
         </header>
-        <label htmlFor="clientName">이름</label>
-        <input id="clientName" value={clientName} onChange={(event) => setClientName(event.target.value)} required />
-        <label htmlFor="clientEmail">이메일</label>
-        <input id="clientEmail" type="email" value={clientEmail} onChange={(event) => setClientEmail(event.target.value)} />
-        <label htmlFor="contact">연락처 / 전달사항</label>
-        <textarea id="contact" value={contact} onChange={(event) => setContact(event.target.value)} placeholder="트위터, 디스코드, 기타 연락 가능한 정보" />
-        <label htmlFor="requestTitle">로그 제목</label>
-        <input id="requestTitle" value={title} onChange={(event) => setTitle(event.target.value)} placeholder="세션 이름" />
-        <label htmlFor="requestNotes">요청 메모</label>
-        <textarea id="requestNotes" value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="특별히 봐야 할 부분이 있다면 적어주세요." />
+        <label htmlFor="requestTitle">프로젝트명</label>
+        <input id="requestTitle" value={title} onChange={(event) => setTitle(event.target.value)} placeholder="닉네임 - 시나리오 제목" required />
+        <label htmlFor="requestNotes">메모</label>
+        <textarea id="requestNotes" value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="같이 전달할 내용이 있다면 적어주세요." />
         <label htmlFor="requestFile">HTML 파일</label>
         <input id="requestFile" type="file" accept=".html,text/html" onChange={(event) => setFile(event.target.files?.[0] || null)} />
         <label htmlFor="requestHtml">HTML 붙여넣기</label>
-        <textarea id="requestHtml" value={html} onChange={(event) => setHtml(event.target.value)} placeholder="파일 대신 HTML을 붙여넣을 수 있습니다." />
+        <HtmlPasteInput id="requestHtml" value={html} onChange={setHtml} placeholder="파일 대신 HTML을 붙여넣을 수 있습니다." />
         {error ? <p className="error-text">{error}</p> : null}
-        <button className="primary-button" disabled={isSubmitting || !clientName || (!file && !html)}>
+        <button className="primary-button" disabled={isSubmitting || !title || (!file && !html)}>
           {isSubmitting ? <Loader2 className="spin" size={18} /> : <Send size={18} />}
-          의뢰 제출
+          업로드
         </button>
         {result ? (
           <section className="result-panel">
-            <h2>접수되었습니다</h2>
+            <h2>업로드되었습니다</h2>
             <p>{result.blockCount.toLocaleString()}개 블록을 읽었습니다.</p>
             <code>{result.projectId}</code>
           </section>
@@ -350,7 +371,7 @@ function UploadPanel({ adminToken, onUploaded }) {
       <label htmlFor="htmlFile">HTML 파일</label>
       <input id="htmlFile" type="file" accept=".html,text/html" onChange={(event) => setFile(event.target.files?.[0] || null)} />
       <label htmlFor="html">HTML 붙여넣기</label>
-      <textarea id="html" value={html} onChange={(event) => setHtml(event.target.value)} placeholder="파일 대신 원본 HTML을 붙여넣을 수 있습니다." />
+      <HtmlPasteInput id="html" value={html} onChange={setHtml} placeholder="파일 대신 원본 HTML을 붙여넣을 수 있습니다." />
       {error ? <p className="error-text">{error}</p> : null}
       <button className="primary-button" disabled={isSubmitting || (!file && !html)}>
         {isSubmitting ? <Loader2 className="spin" size={18} /> : <Save size={18} />}
@@ -411,15 +432,6 @@ function ProjectList({ adminToken, refreshKey, onDeleted }) {
     load();
   }
 
-  async function updateStatus(projectId, status) {
-    await api(`/api/projects/${projectId}/status`, {
-      method: "PATCH",
-      headers: { Authorization: `Bearer ${adminToken}` },
-      body: JSON.stringify({ status }),
-    });
-    setProjects((current) => current.map((project) => (project.id === projectId ? { ...project, status } : project)));
-  }
-
   async function resetSharePassword(projectId) {
     const password = window.prompt("새 공유 비밀번호를 입력하세요. 최소 6자입니다.");
     if (!password) return;
@@ -469,29 +481,8 @@ function ProjectList({ adminToken, refreshKey, onDeleted }) {
               <div>
                 <h3>{project.title}</h3>
                 <p>
-                  {project.status} · {project.blockCount.toLocaleString()} blocks
+                  {project.blockCount.toLocaleString()} blocks · 최종 저장 {formatDateTime(project.updatedAt)}
                 </p>
-                {project.clients?.length ? (
-                  <div className="client-summary">
-                    {project.clients.map((client) => (
-                      <p key={client.id}>
-                        의뢰인: {client.name}
-                        {client.email ? ` / ${client.email}` : ""}
-                        {client.contact ? ` / ${client.contact}` : ""}
-                      </p>
-                    ))}
-                  </div>
-                ) : null}
-                <label className="compact-setting">
-                  상태
-                  <select value={project.status} onChange={(event) => updateStatus(project.id, event.target.value)}>
-                    <option value="submitted">submitted</option>
-                    <option value="reviewing">reviewing</option>
-                    <option value="editing">editing</option>
-                    <option value="confirmed">confirmed</option>
-                    <option value="downloaded">downloaded</option>
-                  </select>
-                </label>
                 <label className="compact-setting">
                   이미지 아이콘
                   <input
@@ -557,6 +548,14 @@ function escapeHtml(value) {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
+}
+
+function formatDateTime(value) {
+  if (!value) return "-";
+  return new Intl.DateTimeFormat("ko-KR", {
+    dateStyle: "short",
+    timeStyle: "short",
+  }).format(new Date(value));
 }
 
 function AdminHome() {
@@ -763,7 +762,7 @@ function App() {
   }
 
   if (isIntakePath()) {
-    return <ClientUploadPage />;
+    return <PublicUploadPage />;
   }
 
   if (!isSharePath()) {

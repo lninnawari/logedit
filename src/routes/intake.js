@@ -17,11 +17,8 @@ const upload = multer({
 });
 
 const intakeProjectSchema = z.object({
-  clientName: z.string().trim().min(1),
-  clientEmail: z.string().trim().email().optional().or(z.literal("")),
-  contact: z.string().trim().max(2000).optional(),
   notes: z.string().trim().max(5000).optional(),
-  title: z.string().trim().min(1).default("Untitled request"),
+  title: z.string().trim().min(1),
   html: z.string().min(1).optional(),
 });
 
@@ -40,54 +37,32 @@ router.post(
     const blocks = parseHtmlToBlocks(originalHtml);
     const sharePassword = generateSharePassword();
     const passwordHash = await bcrypt.hash(sharePassword, 12);
-    const clientEmail = input.clientEmail || null;
 
-    const result = await prisma.$transaction(async (tx) => {
-      const client = await tx.client.create({
-        data: {
-          name: input.clientName,
-          email: clientEmail,
-          contact: input.contact || null,
-          notes: input.notes || null,
+    const project = await prisma.project.create({
+      data: {
+        title: input.title,
+        status: "editing",
+        originalHtml,
+        blocks: {
+          create: blocks,
         },
-      });
-
-      const project = await tx.project.create({
-        data: {
-          title: input.title,
-          status: "submitted",
-          originalHtml,
-          blocks: {
-            create: blocks,
-          },
-          shareLink: {
-            create: { passwordHash },
-          },
-          correctionSettings: {
-            create: {},
-          },
-          projectClients: {
-            create: {
-              clientId: client.id,
-              role: "requester",
-            },
-          },
+        shareLink: {
+          create: { passwordHash },
         },
-        include: {
-          _count: { select: { blocks: true } },
+        correctionSettings: {
+          create: {},
         },
-      });
-
-      return { client, project };
+      },
+      include: {
+        _count: { select: { blocks: true } },
+      },
     });
 
     res.status(201).json({
-      projectId: result.project.id,
-      clientId: result.client.id,
-      title: result.project.title,
-      status: result.project.status,
-      blockCount: result.project._count.blocks,
-      message: "Request submitted.",
+      projectId: project.id,
+      title: project.title,
+      blockCount: project._count.blocks,
+      message: "Upload received.",
     });
   })
 );

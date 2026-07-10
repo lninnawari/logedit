@@ -37,39 +37,8 @@ model Project {
   blocks             MessageBlock[]
   shareLink          ShareLink?
   correctionSettings CorrectionSettings?
-  projectClients     ProjectClient[]
 
   @@map("projects")
-}
-
-model Client {
-  id        String   @id @default(uuid())
-  name      String
-  email     String?
-  contact   String?
-  notes     String?  @db.Text
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  projects ProjectClient[]
-
-  @@index([email])
-  @@map("clients")
-}
-
-model ProjectClient {
-  id        String   @id @default(uuid())
-  projectId String
-  clientId  String
-  role      String   @default("requester")
-  createdAt DateTime @default(now())
-
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  client  Client  @relation(fields: [clientId], references: [id], onDelete: Cascade)
-
-  @@unique([projectId, clientId, role])
-  @@index([clientId])
-  @@map("project_clients")
 }
 
 // ------------------------------------------------------------

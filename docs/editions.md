@@ -29,11 +29,12 @@ This is the version for a buyer/operator who deploys the app for their own use.
 
 ### Excluded Features
 
-- Public client upload form.
-- Intake queue for client-submitted logs.
-- Client approval/rejection workflow.
-- Client-facing project status page.
+- Public original-log upload form.
+- Intake queue for externally submitted logs.
+- Submitter approval/rejection workflow.
+- Submitter-facing project status page.
 - Payment/deadline/work-order management.
+- Public upload submitter profile management.
 
 ### DB Models
 
@@ -73,30 +74,26 @@ Not required:
 - Basic Distribution Edition cleanup is complete in the current codebase.
 - `Client`, `ProjectClient`, `/api/clients`, client panel UI, and project-client linking have been removed from the basic code path.
 
-## 2. Client Upload Form Edition
+## 2. Hosted Original Upload Edition
 
-This is the expanded version for an operator who accepts logs from clients through the app.
+This is the hosted version for an operator who asks log owners to upload original HTML logs before TXT cleanup and InDesign work. It is not a commission-management or client-management system.
 
 ### User Flow
 
 - The operator deploys the app and creates the first admin account.
-- A client opens a public upload form.
-- The client enters their name/contact and uploads or pastes an HTML log.
-- The uploaded log is stored as a project with an intake/review status.
-- The operator logs in, reviews the submitted project, and manages the editing workflow.
-- The operator sends shared edit links to participants or clients.
+- A log owner opens a public upload form.
+- The log owner enters a project title in `nickname - scenario title` format and uploads or pastes an HTML log.
+- The uploaded log is stored directly as a project.
+- The operator logs in and manages the editing workflow.
+- The operator sends shared edit links to participants when needed.
 - Final preview/download remains admin-only.
 
 ### Included Features
 
 Everything in Basic Distribution Edition, plus:
 
-- Public client upload form.
-- Client/contact intake.
-- Submitted project queue.
-- Admin review/approval workflow.
-- Project-client linkage.
-- Optional operator notes, deadlines, or intake status fields if added later.
+- Public original-log upload form.
+- Admin visibility for uploaded projects.
 
 ### DB Models
 
@@ -107,13 +104,10 @@ Required:
 - `ShareLink`
 - `CorrectionSettings`
 - `AdminUser`
-- `Client`
-- `ProjectClient`
 
 Likely future additions:
 
-- `Project.status` values beyond `editing`, `confirmed`, `downloaded`, such as `submitted` or `intake`.
-- Optional `ClientUpload` or intake metadata model if public uploads need audit fields separate from `Project`.
+- Optional `UploadSubmission` model if public uploads need audit fields separate from `Project`.
 
 ### API Surface
 
@@ -123,28 +117,25 @@ Required:
 - `/api/admin/*`
 - `/api/projects/*`
 - `/api/share/*`
-- `/api/clients/*`
 
-Implemented in the hosted intake baseline:
+Implemented in the hosted upload baseline:
 
 - Public upload endpoint: `/api/intake/projects`.
 - Public upload page: `/upload`.
-- Admin intake queue visibility through requester details and `submitted`/`reviewing` project statuses.
+- Admin visibility through the normal project list.
 
 ## Current Repository State
 
-The current repository has been expanded from the Basic Distribution baseline to the Client Upload Form Edition:
+The current repository has been expanded from the Basic Distribution baseline to the Hosted Original Upload Edition:
 
 - It has `AdminUser`, first-run admin setup, and admin login.
 - It has admin-only project upload/management.
 - It has shared participant editing.
-- It has `Client` and `ProjectClient` models in the Prisma schema.
-- It has `/api/clients` for admin-side client lookup.
-- It has `/api/intake/projects` for public client-submitted uploads.
-- It has a public `/upload` page for client log intake.
-- Client-submitted projects start with `submitted` status and appear in the admin project list with requester details.
+- It has `/api/intake/projects` for public original-log uploads.
+- It has a public `/upload` page for log owners.
+- Public uploads appear in the admin project list.
 
 Therefore:
 
-- It is now the hosted Client Upload Form Edition baseline.
-- The earlier Basic Distribution Edition can still be recovered later by hiding/removing public intake, `Client`, and `ProjectClient` features if a downloadable buyer-deployed version is needed.
+- It is now the hosted original-log upload baseline.
+- The earlier Basic Distribution Edition can still be recovered later by hiding/removing public intake if a downloadable buyer-deployed version is needed.
