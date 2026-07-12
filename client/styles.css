@@ -324,10 +324,10 @@ textarea:focus,
 
 .rendered-html table {
   border-collapse: collapse;
-  display: inline-table;
+  display: table;
   max-width: 100%;
   table-layout: auto;
-  width: auto !important;
+  width: 100% !important;
 }
 
 .rendered-html td,
