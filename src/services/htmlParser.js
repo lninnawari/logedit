@@ -155,6 +155,7 @@ function splitHtmlMessageParts(content) {
   if (children.length >= 2) return children.map((child) => $.html(child));
 
   const nestedChildren = collectVisiblePartElements($, $("#split-root").find("a, div, p, li, section").toArray(), true);
+  if (nestedChildren.length === 1) return [$.html(nestedChildren[0])];
   if (nestedChildren.length < 2) return null;
   return nestedChildren.map((child) => $.html(child));
 }
@@ -409,8 +410,53 @@ function extractRoll20HandoutDescription(message, formattedContent, sourceConten
   return extractMarkdownLabel(source) || cheerio.load(formattedContent || "").text().replace(/\s+/g, " ").trim() || DEFAULT_HANDOUT_DESCRIPTION;
 }
 
+function findImageLikeUrl(value, preferredKey = "") {
+  if (value == null) return null;
+
+  if (typeof value === "string") {
+    const text = value.trim();
+    if (!/^https?:\/\//i.test(text)) return null;
+    if (preferredKey && /(avatar|img|image|icon|src|picture|thumb|url)/i.test(preferredKey)) return text;
+    return IMAGE_URL_PATTERN.test(text) ? text : null;
+  }
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const found = findImageLikeUrl(item, preferredKey);
+      if (found) return found;
+    }
+    return null;
+  }
+
+  if (typeof value === "object") {
+    const entries = Object.entries(value);
+    const preferredEntries = entries.filter(([key]) => /(avatar|img|image|icon|src|picture|thumb|url)/i.test(key));
+    const otherEntries = entries.filter(([key]) => !/(avatar|img|image|icon|src|picture|thumb|url)/i.test(key));
+
+    for (const [key, nestedValue] of [...preferredEntries, ...otherEntries]) {
+      const found = findImageLikeUrl(nestedValue, key);
+      if (found) return found;
+    }
+  }
+
+  return null;
+}
+
 function makeAvatarHtml(message) {
-  const avatarUrl = message.avatar || message.avatarURL || message.avatarUrl || message.imgsrc || message.image;
+  const avatarUrl = findImageLikeUrl({
+    avatar: message.avatar,
+    avatarURL: message.avatarURL,
+    avatarUrl: message.avatarUrl,
+    imgsrc: message.imgsrc,
+    image: message.image,
+    picture: message.picture,
+    icon: message.icon,
+    thumb: message.thumb,
+    player: message.player,
+    character: message.character,
+    speakingas: message.speakingas,
+    who: null,
+  });
   if (!avatarUrl || !/^https?:\/\//i.test(String(avatarUrl))) return "";
   return `<img class="character-avatar" src="${escapeHtml(avatarUrl)}" alt="" aria-hidden="true">`;
 }

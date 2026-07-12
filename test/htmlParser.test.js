@@ -125,6 +125,30 @@ test("renders Roll20 avatars in editable message HTML", () => {
   assert.match(blocks[0].rawHtml, /avatar\.png/);
 });
 
+test("renders nested Roll20 avatar-like image fields", () => {
+  const msgdata = Buffer.from(
+    JSON.stringify([
+      {
+        a: {
+          ".priority": 1,
+          type: "general",
+          who: "GM",
+          character: {
+            imageUrl: "https://example.com/character.webp",
+          },
+          content: "등장합니다",
+        },
+      },
+    ]),
+    "utf8"
+  ).toString("base64");
+
+  const blocks = parseHtmlToBlocks(`<script>var msgdata = "${msgdata}";</script>`);
+
+  assert.match(blocks[0].rawHtml, /character-avatar/);
+  assert.match(blocks[0].rawHtml, /character\.webp/);
+});
+
 test("uses markdown image labels for Roll20 desc handout markers", () => {
   const msgdata = Buffer.from(
     JSON.stringify([
@@ -252,6 +276,28 @@ test("splits nested styled Roll20 desc children instead of dropping them", () =>
   assert.equal(blocks.length, 2);
   assert.equal(blocks[0].textContent, "─────── CHAPTER 0 ───────");
   assert.equal(blocks[1].textContent, "도입");
+});
+
+test("keeps a single nested styled Roll20 desc part visible", () => {
+  const msgdata = Buffer.from(
+    JSON.stringify([
+      {
+        desc: {
+          ".priority": 1,
+          type: "desc",
+          who: "",
+          content: '<div class="outer"><div class="spacer"></div><a style="display:block;color:#333">도입</a></div>',
+        },
+      },
+    ]),
+    "utf8"
+  ).toString("base64");
+
+  const blocks = parseHtmlToBlocks(`<script>var msgdata = "${msgdata}";</script>`);
+
+  assert.equal(blocks.length, 1);
+  assert.equal(blocks[0].textContent, "도입");
+  assert.match(blocks[0].rawHtml, /display:block/);
 });
 
 test("classifies mixed Roll20 desc parts independently from image links", () => {
