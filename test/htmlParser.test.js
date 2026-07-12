@@ -231,6 +231,53 @@ test("keeps Roll20 desc anchor headings visible as editable blocks", () => {
   assert.match(blocks[0].rawHtml, /CHAPTER 0/);
 });
 
+test("splits nested styled Roll20 desc children instead of dropping them", () => {
+  const msgdata = Buffer.from(
+    JSON.stringify([
+      {
+        desc: {
+          ".priority": 1,
+          type: "desc",
+          who: "",
+          content:
+            '<div class="outer"><div class="spacer"></div><a style="display:block">─────── CHAPTER 0 ───────</a><a style="display:block">도입</a></div>',
+        },
+      },
+    ]),
+    "utf8"
+  ).toString("base64");
+
+  const blocks = parseHtmlToBlocks(`<script>var msgdata = "${msgdata}";</script>`);
+
+  assert.equal(blocks.length, 2);
+  assert.equal(blocks[0].textContent, "─────── CHAPTER 0 ───────");
+  assert.equal(blocks[1].textContent, "도입");
+});
+
+test("classifies mixed Roll20 desc parts independently from image links", () => {
+  const msgdata = Buffer.from(
+    JSON.stringify([
+      {
+        desc: {
+          ".priority": 1,
+          type: "desc",
+          who: "",
+          content: '<a style="display:block">장면 시작</a><a style="display:block">[이미지](https://example.com/map.png)</a>',
+        },
+      },
+    ]),
+    "utf8"
+  ).toString("base64");
+
+  const blocks = parseHtmlToBlocks(`<script>var msgdata = "${msgdata}";</script>`);
+
+  assert.equal(blocks.length, 2);
+  assert.equal(blocks[0].blockType, "narration");
+  assert.equal(blocks[0].textContent, "장면 시작");
+  assert.equal(blocks[1].blockType, "handout");
+  assert.equal(blocks[1].textContent, "이미지");
+});
+
 test("parses actual Cocofolia span-based HTML logs with empty speaker", () => {
   const blocks = parseHtmlToBlocks(`
     <html><body>

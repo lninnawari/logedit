@@ -150,16 +150,48 @@ function splitHtmlMessageParts(content) {
   if (!/<(a|div|p|li|article|section)\b/i.test(source)) return null;
 
   const $ = cheerio.load(`<section id="split-root">${source}</section>`, { decodeEntities: false });
-  const children = $("#split-root")
-    .children()
-    .toArray()
+  const children = collectVisiblePartElements($, $("#split-root").children().toArray());
+
+  if (children.length >= 2) return children.map((child) => $.html(child));
+
+  const nestedChildren = collectVisiblePartElements($, $("#split-root").find("a, div, p, li, section").toArray(), true);
+  if (nestedChildren.length < 2) return null;
+  return nestedChildren.map((child) => $.html(child));
+}
+
+function collectVisiblePartElements($, elements, requireLeaf = false) {
+  return elements
     .filter((child) => {
       const tagName = String(child.tagName || "").toLowerCase();
-      return SPLITTABLE_CHILD_TAGS.has(tagName) && extractText($, child);
+      if (!SPLITTABLE_CHILD_TAGS.has(tagName)) return false;
+      if (!extractText($, child) && $(child).find("img, picture, video").length === 0) return false;
+
+      if (requireLeaf && tagName !== "a") {
+        const hasVisibleChildPart = $(child)
+          .children("a, div, p, li, section")
+          .toArray()
+          .some((grandchild) => extractText($, grandchild) || $(grandchild).find("img, picture, video").length > 0);
+        if (hasVisibleChildPart) return false;
+      }
+
+      return true;
+    })
+    .filter((child) => {
+      if (!requireLeaf) return true;
+      return $(child).attr("style") || $(child).attr("class") || String(child.tagName || "").toLowerCase() === "a";
     });
+}
+
+function splitGenericHtmlParts($, element) {
+  const children = collectVisiblePartElements(
+    $,
+    $(element)
+    .children()
+      .toArray()
+  );
 
   if (children.length < 2) return null;
-  return children.map((child) => $.html(child));
+  return children;
 }
 
 function toBlock($, element, orderIndex) {
@@ -361,8 +393,9 @@ function markdownLinksToHtml(content) {
   });
 }
 
-function isRoll20Handout(message, htmlContent) {
-  if (IMAGE_URL_PATTERN.test(String(message.content || ""))) return true;
+function isRoll20Handout(message, htmlContent, sourceContent = null) {
+  const source = sourceContent == null ? message.content : sourceContent;
+  if (IMAGE_URL_PATTERN.test(String(source || ""))) return true;
   return /<img\b/i.test(htmlContent);
 }
 
@@ -389,7 +422,7 @@ function roll20MessageToBlock(entry, orderIndex, contentOverride = null) {
   const replacedContent = contentOverride == null ? replaceInlineRolls(message.content, message.inlinerolls) : contentOverride;
   const formattedContent = parseRoll20Template(replacedContent) || markdownLinksToText(replacedContent);
   const htmlContent = markdownLinksToHtml(formattedContent);
-  const blockType = isRoll20Handout(message, htmlContent) ? "handout" : speakerName ? "dialogue" : "narration";
+  const blockType = isRoll20Handout(message, htmlContent, replacedContent) ? "handout" : speakerName ? "dialogue" : "narration";
   const textContent =
     blockType === "handout"
       ? extractRoll20HandoutDescription(message, formattedContent, replacedContent)
