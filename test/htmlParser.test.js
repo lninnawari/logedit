@@ -27,6 +27,16 @@ test("marks image blocks as handouts", () => {
   assert.equal(blocks[0].rawHtml.includes("<img"), false);
 });
 
+test("keeps character images in message blocks with text", () => {
+  const blocks = parseHtmlToBlocks(`
+    <div class="message"><img class="avatar" src="pc.png" alt=""><span class="speaker">GM:</span><span>어서 와</span></div>
+  `);
+
+  assert.equal(blocks.length, 1);
+  assert.equal(blocks[0].blockType, "dialogue");
+  assert.equal(blocks[0].rawHtml.includes("<img"), true);
+});
+
 test("removes hidden elements before extracting text", () => {
   const blocks = parseHtmlToBlocks(`
     <p><b>GM:</b> 보이는 말 <span hidden>숨김</span></p>
@@ -90,6 +100,53 @@ test("parses Roll20 msgdata and skips hidden messages", () => {
   assert.equal(blocks[0].textContent, "지도");
   assert.equal(blocks[1].speakerName, "민수");
   assert.equal(blocks[1].textContent, "듣기 57");
+});
+
+test("renders Roll20 avatars in editable message HTML", () => {
+  const msgdata = Buffer.from(
+    JSON.stringify([
+      {
+        a: {
+          ".priority": 1,
+          type: "general",
+          who: "GM",
+          avatar: "https://example.com/avatar.png",
+          content: "어서 와",
+        },
+      },
+    ]),
+    "utf8"
+  ).toString("base64");
+
+  const blocks = parseHtmlToBlocks(`<script>var msgdata = "${msgdata}";</script>`);
+
+  assert.equal(blocks[0].speakerName, "GM");
+  assert.match(blocks[0].rawHtml, /character-avatar/);
+  assert.match(blocks[0].rawHtml, /avatar\.png/);
+});
+
+test("uses markdown image labels for Roll20 desc handout markers", () => {
+  const msgdata = Buffer.from(
+    JSON.stringify([
+      {
+        image: {
+          ".priority": 1,
+          type: "desc",
+          who: "",
+          content: "/desc [이미지](https://example.com/handout.png)",
+        },
+      },
+    ]),
+    "utf8"
+  ).toString("base64");
+
+  const blocks = parseHtmlToBlocks(`<script>var msgdata = "${msgdata}";</script>`);
+
+  assert.equal(blocks.length, 1);
+  assert.equal(blocks[0].blockType, "handout");
+  assert.equal(blocks[0].textContent, "이미지");
+  assert.match(blocks[0].rawHtml, /이미지/);
+  assert.doesNotMatch(blocks[0].rawHtml, /handout\.png/);
 });
 
 test("formats Roll20 sheet template messages into readable text", () => {

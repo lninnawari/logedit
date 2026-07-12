@@ -24,6 +24,7 @@ const SPEAKER_SELECTORS = [
 const DEFAULT_HANDOUT_DESCRIPTION = "이미지/핸드아웃 위치";
 const DEFAULT_HANDOUT_ICON = "★";
 const SPLITTABLE_CHILD_TAGS = new Set(["a", "article", "div", "li", "p", "section"]);
+const IMAGE_URL_PATTERN = /https?:\/\/\S+\.(png|jpe?g|gif|webp)(\?\S*)?/i;
 
 function removeHiddenElements($) {
   $("[hidden], [aria-hidden='true'], script, style, noscript").remove();
@@ -88,21 +89,26 @@ function stripSpeakerSuffix(text) {
 }
 
 function detectBlockType($, element) {
-  if ($(element).find("img, picture, video").length > 0) return "handout";
+  if ($(element).find("img, picture, video").length > 0 && !extractText($, element)) return "handout";
   return extractSpeakerName($, element) ? "dialogue" : "narration";
 }
 
 function findMessageElements($) {
+  let firstCandidateElements = [];
+
   for (const selector of MESSAGE_SELECTORS) {
     const elements = $(selector)
       .toArray()
       .filter((element) => extractText($, element) || $(element).find("img, picture, video").length > 0);
 
     if (elements.length > 0) {
+      if (firstCandidateElements.length === 0) firstCandidateElements = elements;
       const expanded = expandMixedMessageElements($, elements);
       if (expanded.length > 1) return expanded;
     }
   }
+
+  if (firstCandidateElements.length === 1) return firstCandidateElements;
 
   const bodyChildren = $("body")
     .children()
@@ -356,7 +362,7 @@ function markdownLinksToHtml(content) {
 }
 
 function isRoll20Handout(message, htmlContent) {
-  if (/https?:\/\/\S+\.(png|jpe?g|gif|webp)(\?\S*)?/i.test(String(message.content || ""))) return true;
+  if (IMAGE_URL_PATTERN.test(String(message.content || ""))) return true;
   return /<img\b/i.test(htmlContent);
 }
 
@@ -365,8 +371,15 @@ function extractMarkdownLabel(content) {
   return match ? match[1].trim() : null;
 }
 
-function extractRoll20HandoutDescription(message, formattedContent) {
-  return extractMarkdownLabel(message.content) || cheerio.load(formattedContent || "").text().replace(/\s+/g, " ").trim() || DEFAULT_HANDOUT_DESCRIPTION;
+function extractRoll20HandoutDescription(message, formattedContent, sourceContent = null) {
+  const source = sourceContent == null ? message.content : sourceContent;
+  return extractMarkdownLabel(source) || cheerio.load(formattedContent || "").text().replace(/\s+/g, " ").trim() || DEFAULT_HANDOUT_DESCRIPTION;
+}
+
+function makeAvatarHtml(message) {
+  const avatarUrl = message.avatar || message.avatarURL || message.avatarUrl || message.imgsrc || message.image;
+  if (!avatarUrl || !/^https?:\/\//i.test(String(avatarUrl))) return "";
+  return `<img class="character-avatar" src="${escapeHtml(avatarUrl)}" alt="" aria-hidden="true">`;
 }
 
 function roll20MessageToBlock(entry, orderIndex, contentOverride = null) {
@@ -378,14 +391,17 @@ function roll20MessageToBlock(entry, orderIndex, contentOverride = null) {
   const htmlContent = markdownLinksToHtml(formattedContent);
   const blockType = isRoll20Handout(message, htmlContent) ? "handout" : speakerName ? "dialogue" : "narration";
   const textContent =
-    blockType === "handout" ? extractRoll20HandoutDescription(message, formattedContent) : cheerio.load(htmlContent).text().replace(/\s+/g, " ").trim();
+    blockType === "handout"
+      ? extractRoll20HandoutDescription(message, formattedContent, replacedContent)
+      : cheerio.load(htmlContent).text().replace(/\s+/g, " ").trim();
+  const avatar = blockType === "handout" ? "" : makeAvatarHtml(message);
   const byline = speakerName ? `<span class="by">${escapeHtml(speakerName)}:</span> ` : "";
   const rawHtml =
     blockType === "handout"
       ? makeHandoutRawHtml(textContent)
       : type === "desc"
-        ? `<div class="message ${escapeHtml(type)}" data-messageid="${escapeHtml(id)}">${byline}<div class="content">${htmlContent}</div></div>`
-        : `<div class="message ${escapeHtml(type)}" data-messageid="${escapeHtml(id)}">${byline}<span class="content">${htmlContent}</span></div>`;
+        ? `<div class="message ${escapeHtml(type)}" data-messageid="${escapeHtml(id)}">${avatar}${byline}<div class="content">${htmlContent}</div></div>`
+        : `<div class="message ${escapeHtml(type)}" data-messageid="${escapeHtml(id)}">${avatar}${byline}<span class="content">${htmlContent}</span></div>`;
 
   return {
     orderIndex,

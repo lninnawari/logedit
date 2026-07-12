@@ -308,6 +308,7 @@ textarea:focus,
   line-height: 1.55;
   min-height: 24px;
   outline: none;
+  overflow-x: auto;
 }
 
 .rendered-html .locked-speaker {
@@ -319,6 +320,43 @@ textarea:focus,
   display: block;
   height: auto;
   max-width: 100%;
+}
+
+.rendered-html table {
+  border-collapse: collapse;
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  table-layout: fixed;
+}
+
+.rendered-html td,
+.rendered-html th {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.rendered-html pre,
+.rendered-html code {
+  max-width: 100%;
+  overflow-x: auto;
+  white-space: pre-wrap;
+}
+
+.rendered-html .character-avatar {
+  border-radius: 4px;
+  display: inline-block;
+  height: 32px;
+  margin-right: 6px;
+  object-fit: cover;
+  vertical-align: middle;
+  width: 32px;
+}
+
+.rendered-html .message.desc .content > a {
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 
 .handout-text {
