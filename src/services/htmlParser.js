@@ -25,6 +25,8 @@ const DEFAULT_HANDOUT_DESCRIPTION = "이미지/핸드아웃 위치";
 const DEFAULT_HANDOUT_ICON = "★";
 const SPLITTABLE_CHILD_TAGS = new Set(["a", "article", "div", "li", "p", "section"]);
 const IMAGE_URL_PATTERN = /https?:\/\/\S+\.(png|jpe?g|gif|webp)(\?\S*)?/i;
+const MARKDOWN_IMAGE_LINK_PATTERN = /^\s*(?:\/desc\s*)?\[([^\]]+)]\((https?:\/\/[^)\s]+\.(?:png|jpe?g|gif|webp)(?:\?[^)]*)?)\)\s*$/i;
+const BARE_IMAGE_URL_PATTERN = /^\s*https?:\/\/\S+\.(?:png|jpe?g|gif|webp)(?:\?\S*)?\s*$/i;
 
 function removeHiddenElements($) {
   $("[hidden], [aria-hidden='true'], script, style, noscript").remove();
@@ -384,6 +386,20 @@ function parseRoll20Template(content) {
   return pairs.map(([key, value]) => `${key}: ${value}`).join(" / ");
 }
 
+function hasHtmlMarkup(content) {
+  return /<\/?[a-z][\s\S]*>/i.test(String(content || ""));
+}
+
+function htmlToText(content) {
+  return cheerio.load(String(content || "")).text().replace(/\s+/g, " ").trim();
+}
+
+function textForMarkdownDetection(content) {
+  const source = String(content || "");
+  const visibleText = hasHtmlMarkup(source) ? htmlToText(source) : "";
+  return (visibleText || source).trim();
+}
+
 function markdownLinksToText(content) {
   return String(content || "").replace(/\[([^\]]+)]\(([^)]*)\)/g, "$1");
 }
@@ -396,12 +412,13 @@ function markdownLinksToHtml(content) {
 
 function isRoll20Handout(message, htmlContent, sourceContent = null) {
   const source = sourceContent == null ? message.content : sourceContent;
-  if (IMAGE_URL_PATTERN.test(String(source || ""))) return true;
-  return /<img\b/i.test(htmlContent);
+  const detectionText = textForMarkdownDetection(source);
+  if (MARKDOWN_IMAGE_LINK_PATTERN.test(detectionText) || BARE_IMAGE_URL_PATTERN.test(detectionText)) return true;
+  return /<img\b/i.test(htmlContent) && !htmlToText(htmlContent);
 }
 
 function extractMarkdownLabel(content) {
-  const match = String(content || "").match(/\[([^\]]+)]\(([^)]*)\)/);
+  const match = textForMarkdownDetection(content).match(/\[([^\]]+)]\(([^)]*)\)/);
   return match ? match[1].trim() : null;
 }
 
@@ -466,13 +483,14 @@ function roll20MessageToBlock(entry, orderIndex, contentOverride = null) {
   const type = message.type || "general";
   const speakerName = stripSpeakerSuffix(message.who);
   const replacedContent = contentOverride == null ? replaceInlineRolls(message.content, message.inlinerolls) : contentOverride;
-  const formattedContent = parseRoll20Template(replacedContent) || markdownLinksToText(replacedContent);
-  const htmlContent = markdownLinksToHtml(formattedContent);
+  const preserveDescHtml = type === "desc" && hasHtmlMarkup(replacedContent);
+  const formattedContent = preserveDescHtml ? replacedContent : parseRoll20Template(replacedContent) || markdownLinksToText(replacedContent);
+  const htmlContent = preserveDescHtml ? replacedContent : markdownLinksToHtml(formattedContent);
   const blockType = isRoll20Handout(message, htmlContent, replacedContent) ? "handout" : speakerName ? "dialogue" : "narration";
   const textContent =
     blockType === "handout"
       ? extractRoll20HandoutDescription(message, formattedContent, replacedContent)
-      : cheerio.load(htmlContent).text().replace(/\s+/g, " ").trim();
+      : htmlToText(htmlContent);
   const avatar = blockType === "handout" ? "" : makeAvatarHtml(message);
   const byline = speakerName ? `<span class="by">${escapeHtml(speakerName)}:</span> ` : "";
   const rawHtml =
@@ -492,10 +510,19 @@ function roll20MessageToBlock(entry, orderIndex, contentOverride = null) {
   };
 }
 
+function shouldPreserveRoll20Desc(content) {
+  const source = String(content || "");
+  return (
+    /<(table|tbody|thead|tfoot|tr|td|th)\b/i.test(source) ||
+    /rolltemplate|sheet-|inlinerollresult|userscript-|formattedformula/i.test(source) ||
+    /\{\{[^=}]+=/i.test(source)
+  );
+}
+
 function roll20EntryToBlocks(entry) {
   const [_id, message] = entry;
   const replacedContent = replaceInlineRolls(message.content, message.inlinerolls);
-  const parts = message.type === "desc" ? splitHtmlMessageParts(replacedContent) : null;
+  const parts = message.type === "desc" && !shouldPreserveRoll20Desc(replacedContent) ? splitHtmlMessageParts(replacedContent) : null;
   if (!parts) return [roll20MessageToBlock(entry, 0)];
   return parts.map((part) => roll20MessageToBlock(entry, 0, part));
 }

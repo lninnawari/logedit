@@ -324,6 +324,55 @@ test("classifies mixed Roll20 desc parts independently from image links", () => 
   assert.equal(blocks[1].textContent, "이미지");
 });
 
+test("preserves styled Roll20 desc macro tables", () => {
+  const msgdata = Buffer.from(
+    JSON.stringify([
+      {
+        desc: {
+          ".priority": 1,
+          type: "desc",
+          who: "",
+          content:
+            '<div class="sheet-rolltemplate-coc"><table style="width:100%"><tbody><tr><td>{{name=Listen}}</td></tr><tr><td>Result</td><td>65</td></tr></tbody></table></div>',
+        },
+      },
+    ]),
+    "utf8"
+  ).toString("base64");
+
+  const blocks = parseHtmlToBlocks(`<script>var msgdata = "${msgdata}";</script>`);
+
+  assert.equal(blocks.length, 1);
+  assert.equal(blocks[0].blockType, "narration");
+  assert.match(blocks[0].rawHtml, /sheet-rolltemplate-coc/);
+  assert.match(blocks[0].rawHtml, /<table/);
+  assert.match(blocks[0].rawHtml, /Result/);
+  assert.equal(blocks[0].textContent.includes("Result"), true);
+});
+
+test("does not treat styled desc image urls as handouts unless the whole desc is an image link", () => {
+  const msgdata = Buffer.from(
+    JSON.stringify([
+      {
+        desc: {
+          ".priority": 1,
+          type: "desc",
+          who: "",
+          content: '<div style="background-image:url(https://example.com/bg.png)">Scene text</div>',
+        },
+      },
+    ]),
+    "utf8"
+  ).toString("base64");
+
+  const blocks = parseHtmlToBlocks(`<script>var msgdata = "${msgdata}";</script>`);
+
+  assert.equal(blocks.length, 1);
+  assert.equal(blocks[0].blockType, "narration");
+  assert.equal(blocks[0].textContent, "Scene text");
+  assert.match(blocks[0].rawHtml, /background-image/);
+});
+
 test("parses actual Cocofolia span-based HTML logs with empty speaker", () => {
   const blocks = parseHtmlToBlocks(`
     <html><body>
