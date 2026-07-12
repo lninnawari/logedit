@@ -23,6 +23,7 @@ const SPEAKER_SELECTORS = [
 
 const DEFAULT_HANDOUT_DESCRIPTION = "이미지/핸드아웃 위치";
 const DEFAULT_HANDOUT_ICON = "★";
+const SPLITTABLE_CHILD_TAGS = new Set(["article", "div", "li", "p", "section"]);
 
 function removeHiddenElements($) {
   $("[hidden], [aria-hidden='true'], script, style, noscript").remove();
@@ -97,7 +98,10 @@ function findMessageElements($) {
       .toArray()
       .filter((element) => extractText($, element) || $(element).find("img, picture, video").length > 0);
 
-    if (elements.length > 1) return elements;
+    if (elements.length > 0) {
+      const expanded = expandMixedMessageElements($, elements);
+      if (expanded.length > 1) return expanded;
+    }
   }
 
   const bodyChildren = $("body")
@@ -105,7 +109,51 @@ function findMessageElements($) {
     .toArray()
     .filter((element) => extractText($, element) || $(element).find("img, picture, video").length > 0);
 
-  return bodyChildren.length > 1 ? bodyChildren : [];
+  if (bodyChildren.length > 0) {
+    const expanded = expandMixedMessageElements($, bodyChildren);
+    if (expanded.length > 1) return expanded;
+  }
+
+  return [];
+}
+
+function getDirectMessageChildren($, element) {
+  const children = $(element)
+    .children()
+    .toArray()
+    .filter((child) => {
+      const tagName = String(child.tagName || "").toLowerCase();
+      return SPLITTABLE_CHILD_TAGS.has(tagName) && (extractText($, child) || $(child).find("img, picture, video").length > 0);
+    });
+
+  if (children.length < 2) return [];
+
+  const styledChildren = children.filter((child) => $(child).attr("style") || $(child).attr("class") || $(child).attr("data-messageid"));
+  return styledChildren.length >= 2 ? children : [];
+}
+
+function expandMixedMessageElements($, elements) {
+  return elements.flatMap((element) => {
+    const directChildren = getDirectMessageChildren($, element);
+    return directChildren.length > 0 ? directChildren : [element];
+  });
+}
+
+function splitHtmlMessageParts(content) {
+  const source = String(content || "");
+  if (!/<(div|p|li|article|section)\b/i.test(source)) return null;
+
+  const $ = cheerio.load(`<section id="split-root">${source}</section>`, { decodeEntities: false });
+  const children = $("#split-root")
+    .children()
+    .toArray()
+    .filter((child) => {
+      const tagName = String(child.tagName || "").toLowerCase();
+      return SPLITTABLE_CHILD_TAGS.has(tagName) && extractText($, child);
+    });
+
+  if (children.length < 2) return null;
+  return children.map((child) => $.html(child));
 }
 
 function toBlock($, element, orderIndex) {
@@ -321,11 +369,11 @@ function extractRoll20HandoutDescription(message, formattedContent) {
   return extractMarkdownLabel(message.content) || cheerio.load(formattedContent || "").text().replace(/\s+/g, " ").trim() || DEFAULT_HANDOUT_DESCRIPTION;
 }
 
-function roll20MessageToBlock(entry, orderIndex) {
+function roll20MessageToBlock(entry, orderIndex, contentOverride = null) {
   const [id, message] = entry;
   const type = message.type || "general";
   const speakerName = stripSpeakerSuffix(message.who);
-  const replacedContent = replaceInlineRolls(message.content, message.inlinerolls);
+  const replacedContent = contentOverride == null ? replaceInlineRolls(message.content, message.inlinerolls) : contentOverride;
   const formattedContent = parseRoll20Template(replacedContent) || markdownLinksToText(replacedContent);
   const htmlContent = markdownLinksToHtml(formattedContent);
   const blockType = isRoll20Handout(message, htmlContent) ? "handout" : speakerName ? "dialogue" : "narration";
@@ -347,13 +395,25 @@ function roll20MessageToBlock(entry, orderIndex) {
   };
 }
 
+function roll20EntryToBlocks(entry) {
+  const [_id, message] = entry;
+  const replacedContent = replaceInlineRolls(message.content, message.inlinerolls);
+  const parts = message.type === "desc" ? splitHtmlMessageParts(replacedContent) : null;
+  if (!parts) return [roll20MessageToBlock(entry, 0)];
+  return parts.map((part) => roll20MessageToBlock(entry, 0, part));
+}
+
 function parseRoll20Msgdata(source) {
   const groups = extractRoll20Msgdata(source);
   if (!Array.isArray(groups)) return null;
 
   return flattenRoll20Groups(groups)
     .filter(([_id, message]) => message && message.type !== "hidden")
-    .map((entry, index) => roll20MessageToBlock(entry, index));
+    .flatMap(roll20EntryToBlocks)
+    .map((block, index) => ({
+      ...block,
+      orderIndex: index,
+    }));
 }
 
 function escapeHtml(value) {

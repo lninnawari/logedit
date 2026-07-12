@@ -227,8 +227,8 @@ textarea:focus,
 
 .editor-shell {
   margin: 0 auto;
-  max-width: 980px;
-  padding: 18px;
+  max-width: 760px;
+  padding: 14px;
 }
 
 .topbar {
@@ -250,19 +250,30 @@ textarea:focus,
 }
 
 .log-list {
-  display: grid;
-  gap: 10px;
+  display: block;
 }
 
 .log-block {
-  background: #ffffff;
-  border: 1px solid #dce4df;
-  border-radius: 8px;
-  padding: 12px;
+  border-left: 3px solid transparent;
+  padding: 2px 0 2px 10px;
+  position: relative;
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease;
+}
+
+.log-block:hover {
+  background: #eef6f2;
+  border-left-color: #95c9b1;
+}
+
+.log-block.editing {
+  background: #fffaf0;
+  border-left-color: #c98b36;
 }
 
 .log-block.edited {
-  border-color: #95c9b1;
+  border-left-color: #5aa67f;
 }
 
 .block-meta,
@@ -276,12 +287,14 @@ textarea:focus,
 }
 
 .block-body {
-  margin: 10px 0;
+  margin: 0;
   overflow-wrap: anywhere;
 }
 
 .rendered-html {
   line-height: 1.55;
+  min-height: 24px;
+  outline: none;
 }
 
 .rendered-html img {
@@ -291,21 +304,32 @@ textarea:focus,
 }
 
 .handout-text {
-  background: #f6faf8;
-  border: 1px dashed #a9bbb2;
-  border-radius: 8px;
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
   color: #28423a;
   display: inline-flex;
   font-weight: 600;
   line-height: 1.5;
-  padding: 8px 10px;
+  outline: none;
+  padding: 2px 4px;
 }
 
-.editor-row {
-  align-items: stretch;
-  display: grid;
-  gap: 8px;
-  grid-template-columns: minmax(0, 1fr) 38px;
+.editable-surface[contenteditable="true"] {
+  cursor: text;
+  outline: 2px solid rgba(201, 139, 54, 0.35);
+  outline-offset: 2px;
+}
+
+.block-status {
+  align-items: center;
+  display: flex;
+  font-size: 12px;
+  gap: 4px;
+  min-height: 0;
+  position: absolute;
+  right: 4px;
+  top: 2px;
 }
 
 textarea {
@@ -315,10 +339,32 @@ textarea {
 }
 
 .html-paste-box {
-  min-height: 180px;
+  max-height: 140px;
+  min-height: 96px;
   overflow: auto;
   white-space: pre-wrap;
   width: 100%;
+}
+
+.html-paste-summary {
+  align-items: center;
+  background: #f6faf8;
+  border: 1px solid #bfccc6;
+  border-radius: 6px;
+  color: #28423a;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) auto 38px;
+  min-height: 48px;
+  padding: 6px 8px 6px 12px;
+}
+
+.html-paste-summary span {
+  font-weight: 700;
+}
+
+.html-paste-summary small {
+  color: #66746f;
 }
 
 .html-paste-box:empty::before {
@@ -336,7 +382,7 @@ textarea {
 }
 
 #requestHtml {
-  min-height: 220px;
+  min-height: 96px;
 }
 
 .result-panel {

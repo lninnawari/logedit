@@ -144,6 +144,21 @@ test("parses Cocofolia-like HTML paragraph logs", () => {
   assert.equal(blocks[2].textContent, "BGM을 변경했습니다.");
 });
 
+test("splits mixed styled child messages into separate blocks", () => {
+  const blocks = parseHtmlToBlocks(`
+    <html><body>
+      <article class="log-export">
+        <div style="color:#333333;">KP: 첫 번째 설명</div>
+        <div style="color:#0055aa;">탐사자: 대답합니다</div>
+      </article>
+    </body></html>
+  `);
+
+  assert.equal(blocks.length, 2);
+  assert.equal(blocks[0].textContent, "KP: 첫 번째 설명");
+  assert.equal(blocks[1].textContent, "탐사자: 대답합니다");
+});
+
 test("parses actual Cocofolia span-based HTML logs with empty speaker", () => {
   const blocks = parseHtmlToBlocks(`
     <html><body>

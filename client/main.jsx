@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import DOMPurify from "dompurify";
-import { Check, Download, Edit3, KeyRound, Loader2, LogOut, RefreshCw, Save, Send, Trash2 } from "lucide-react";
+import { Check, Download, KeyRound, Loader2, LogOut, RefreshCw, Save, Send, Trash2, X } from "lucide-react";
 
 import "./styles.css";
 
@@ -54,11 +54,19 @@ function HtmlPasteInput({ id, value, onChange, placeholder }) {
     if (!pastedValue) return;
 
     event.preventDefault();
-    document.execCommand("insertText", false, pastedValue);
-    onChange(ref.current?.textContent || "");
+    onChange(pastedValue);
+    if (ref.current) ref.current.textContent = "";
   }
 
-  return (
+  return value ? (
+    <div className="html-paste-summary" id={id}>
+      <span>HTML 붙여넣기 완료</span>
+      <small>{value.length.toLocaleString()}자</small>
+      <button type="button" className="icon-button" onClick={() => onChange("")} title="붙여넣은 HTML 지우기">
+        <X size={16} />
+      </button>
+    </div>
+  ) : (
     <div
       id={id}
       ref={ref}
@@ -634,23 +642,44 @@ function editableText(block) {
   return text.slice(speaker.length).replace(/^\s*[:：>＞]?\s*/, "").trimStart();
 }
 
+function stripSpeakerPrefix(text, speakerName) {
+  const textValue = String(text || "").trim();
+  const speaker = String(speakerName || "").trim();
+  if (!speaker || !textValue.startsWith(speaker)) return textValue;
+  return textValue.slice(speaker.length).replace(/^\s*[:：>＞]?\s*/, "").trimStart();
+}
+
 function Block({ block, token, settings, onUpdated }) {
   const [isEditing, setIsEditing] = useState(false);
-  const [draft, setDraft] = useState(() => editableText(block));
   const [status, setStatus] = useState("idle");
+  const editorRef = useRef(null);
   const cleanHtml = useMemo(() => DOMPurify.sanitize(block.rawHtml), [block.rawHtml]);
 
   useEffect(() => {
-    setDraft(editableText(block));
-  }, [block.textContent]);
+    if (!isEditing || !editorRef.current) return;
+    editorRef.current.focus();
 
-  async function save() {
+    const range = document.createRange();
+    range.selectNodeContents(editorRef.current);
+    range.collapse(false);
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+  }, [isEditing]);
+
+  async function save(nextText) {
+    const normalizedText = stripSpeakerPrefix(nextText, block.speakerName);
+    if (!normalizedText || normalizedText === editableText(block)) {
+      setIsEditing(false);
+      return;
+    }
+
     setStatus("saving");
     try {
       const updated = await api(`/api/share/${block.projectId}/blocks/${block.id}`, {
         method: "PATCH",
         headers: { Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ textContent: draft }),
+        body: JSON.stringify({ textContent: normalizedText }),
       });
       onUpdated(updated);
       setIsEditing(false);
@@ -661,32 +690,55 @@ function Block({ block, token, settings, onUpdated }) {
     }
   }
 
+  function finishEditing(event) {
+    save(event.currentTarget.innerText);
+  }
+
+  function handleKeyDown(event) {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      setIsEditing(false);
+      return;
+    }
+
+    if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+      event.preventDefault();
+      event.currentTarget.blur();
+    }
+  }
+
   return (
-    <article className={`log-block ${block.isEdited ? "edited" : ""}`} onDoubleClick={() => setIsEditing(true)}>
-      <div className="block-meta">
-        <span>#{block.orderIndex + 1}</span>
-        <span>{block.blockType}</span>
-        {block.speakerName ? <span>{block.speakerName}</span> : null}
-      </div>
+    <article
+      className={`log-block ${block.isEdited ? "edited" : ""} ${isEditing ? "editing" : ""}`}
+      onDoubleClick={() => setIsEditing(true)}
+      title={isEditing ? "수정 후 바깥을 클릭하면 저장됩니다." : "더블클릭해서 수정"}
+    >
       <div className="block-body">
-        {isEditing ? (
-          <div className="editor-row">
-            <textarea value={draft} onChange={(event) => setDraft(event.target.value)} autoFocus />
-            <button className="icon-button" onClick={save} disabled={status === "saving"} title="저장">
-              {status === "saving" ? <Loader2 className="spin" size={18} /> : <Save size={18} />}
-            </button>
+        {block.blockType === "handout" ? (
+          <div
+            ref={editorRef}
+            className="handout-text editable-surface"
+            contentEditable={isEditing}
+            suppressContentEditableWarning
+            onBlur={finishEditing}
+            onKeyDown={handleKeyDown}
+          >
+            {formatHandoutText(block, settings)}
           </div>
-        ) : block.blockType === "handout" ? (
-          <div className="handout-text">{formatHandoutText(block, settings)}</div>
         ) : (
-          <div className="rendered-html" dangerouslySetInnerHTML={{ __html: cleanHtml }} />
+          <div
+            ref={editorRef}
+            className="rendered-html editable-surface"
+            contentEditable={isEditing}
+            suppressContentEditableWarning
+            onBlur={finishEditing}
+            onKeyDown={handleKeyDown}
+            dangerouslySetInnerHTML={{ __html: cleanHtml }}
+          />
         )}
       </div>
-      <div className="block-actions">
-        <button className="ghost-button" onClick={() => setIsEditing(true)}>
-          <Edit3 size={15} />
-          수정
-        </button>
+      <div className="block-status">
+        {status === "saving" ? <Loader2 className="spin" size={14} /> : null}
         {status === "saved" ? <span className="saved-text">저장됨</span> : null}
         {status === "error" ? <span className="error-text">저장 실패</span> : null}
       </div>
