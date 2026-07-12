@@ -1,8 +1,10 @@
 const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
 const multer = require("multer");
 const { Router } = require("express");
 const { z } = require("zod");
 
+const { config } = require("../config");
 const { prisma } = require("../prisma");
 const { requireAdmin } = require("../middleware/adminAuth");
 const { asyncHandler } = require("../middleware/asyncHandler");
@@ -11,10 +13,12 @@ const { parseHtmlToBlocks } = require("../services/htmlParser");
 const { generateSharePassword } = require("../services/passwords");
 
 const router = Router();
+const htmlUploadLimit = 30 * 1024 * 1024;
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: 10 * 1024 * 1024,
+    fileSize: htmlUploadLimit,
+    fieldSize: htmlUploadLimit,
   },
 });
 
@@ -185,6 +189,29 @@ router.patch(
     });
 
     res.json(shareLink);
+  })
+);
+
+router.post(
+  "/:id/share-session",
+  asyncHandler(async (req, res) => {
+    const shareLink = await prisma.shareLink.findUnique({
+      where: { projectId: req.params.id },
+    });
+
+    if (!shareLink) return res.status(404).json({ error: "Share link not found." });
+
+    const token = jwt.sign(
+      {
+        projectId: req.params.id,
+        shareLinkId: shareLink.id,
+        adminEdit: true,
+      },
+      config.jwtSecret,
+      { expiresIn: "12h" }
+    );
+
+    res.json({ token, path: `/share/${req.params.id}` });
   })
 );
 

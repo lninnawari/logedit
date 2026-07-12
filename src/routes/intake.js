@@ -9,10 +9,12 @@ const { parseHtmlToBlocks } = require("../services/htmlParser");
 const { generateSharePassword } = require("../services/passwords");
 
 const router = Router();
+const htmlUploadLimit = 30 * 1024 * 1024;
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: 10 * 1024 * 1024,
+    fileSize: htmlUploadLimit,
+    fieldSize: htmlUploadLimit,
   },
 });
 

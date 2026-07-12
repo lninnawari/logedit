@@ -54,7 +54,7 @@ button:disabled {
   align-items: center;
   display: flex;
   justify-content: flex-end;
-  max-width: 1180px;
+  max-width: 820px;
   width: 100%;
 }
 
@@ -63,12 +63,25 @@ button:disabled {
   margin-right: 12px;
 }
 
+.admin-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
 .admin-grid {
   display: grid;
   gap: 18px;
   grid-template-columns: minmax(320px, 0.85fr) minmax(360px, 1.15fr);
   max-width: 1180px;
   width: 100%;
+}
+
+.admin-grid.single {
+  grid-template-columns: minmax(0, 1fr);
+  max-width: 820px;
 }
 
 .upload-panel,
@@ -227,7 +240,7 @@ textarea:focus,
 
 .editor-shell {
   margin: 0 auto;
-  max-width: 760px;
+  max-width: 680px;
   padding: 14px;
 }
 
@@ -295,6 +308,11 @@ textarea:focus,
   line-height: 1.55;
   min-height: 24px;
   outline: none;
+}
+
+.rendered-html .locked-speaker {
+  cursor: default;
+  user-select: none;
 }
 
 .rendered-html img {
@@ -415,6 +433,48 @@ textarea {
   border-radius: 6px;
   color: #1d2428;
   padding: 8px;
+}
+
+.copy-row,
+.password-row {
+  align-items: center;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) 38px;
+}
+
+.password-row code {
+  min-height: 38px;
+}
+
+.modal-backdrop {
+  align-items: center;
+  background: rgba(18, 28, 24, 0.38);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 20px;
+  position: fixed;
+  z-index: 10;
+}
+
+.modal-panel {
+  max-height: calc(100vh - 40px);
+  max-width: 560px;
+  overflow: auto;
+  position: relative;
+  width: 100%;
+}
+
+.modal-panel .upload-panel {
+  max-width: none;
+}
+
+.modal-close {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  z-index: 1;
 }
 
 .project-list {

@@ -23,7 +23,7 @@ const SPEAKER_SELECTORS = [
 
 const DEFAULT_HANDOUT_DESCRIPTION = "이미지/핸드아웃 위치";
 const DEFAULT_HANDOUT_ICON = "★";
-const SPLITTABLE_CHILD_TAGS = new Set(["article", "div", "li", "p", "section"]);
+const SPLITTABLE_CHILD_TAGS = new Set(["a", "article", "div", "li", "p", "section"]);
 
 function removeHiddenElements($) {
   $("[hidden], [aria-hidden='true'], script, style, noscript").remove();
@@ -141,7 +141,7 @@ function expandMixedMessageElements($, elements) {
 
 function splitHtmlMessageParts(content) {
   const source = String(content || "");
-  if (!/<(div|p|li|article|section)\b/i.test(source)) return null;
+  if (!/<(a|div|p|li|article|section)\b/i.test(source)) return null;
 
   const $ = cheerio.load(`<section id="split-root">${source}</section>`, { decodeEntities: false });
   const children = $("#split-root")
@@ -383,7 +383,9 @@ function roll20MessageToBlock(entry, orderIndex, contentOverride = null) {
   const rawHtml =
     blockType === "handout"
       ? makeHandoutRawHtml(textContent)
-      : `<div class="message ${escapeHtml(type)}" data-messageid="${escapeHtml(id)}">${byline}<span class="content">${htmlContent}</span></div>`;
+      : type === "desc"
+        ? `<div class="message ${escapeHtml(type)}" data-messageid="${escapeHtml(id)}">${byline}<div class="content">${htmlContent}</div></div>`
+        : `<div class="message ${escapeHtml(type)}" data-messageid="${escapeHtml(id)}">${byline}<span class="content">${htmlContent}</span></div>`;
 
   return {
     orderIndex,

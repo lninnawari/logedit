@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import DOMPurify from "dompurify";
-import { Check, Download, KeyRound, Loader2, LogOut, RefreshCw, Save, Send, Trash2, X } from "lucide-react";
+import { Check, Copy, Download, Eye, EyeOff, KeyRound, Loader2, LogOut, RefreshCw, Save, Send, Trash2, Upload, X } from "lucide-react";
 
 import "./styles.css";
 
@@ -328,6 +328,7 @@ function UploadPanel({ adminToken, onUploaded }) {
   const [file, setFile] = useState(null);
   const [html, setHtml] = useState("");
   const [result, setResult] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -354,6 +355,7 @@ function UploadPanel({ adminToken, onUploaded }) {
       const body = await response.json();
       if (!response.ok) throw new Error(body.error || "업로드에 실패했습니다.");
       setResult(body);
+      setShowPassword(false);
       onUploaded();
     } catch (err) {
       setError(err.message);
@@ -389,8 +391,18 @@ function UploadPanel({ adminToken, onUploaded }) {
         <section className="result-panel">
           <h2>공유 정보</h2>
           <p>{result.blockCount.toLocaleString()} blocks</p>
-          <a href={result.share.path}>{window.location.origin + result.share.path}</a>
-          <code>{result.share.password}</code>
+          <div className="copy-row">
+            <a href={result.share.path}>{window.location.origin + result.share.path}</a>
+            <button type="button" className="icon-button" onClick={() => copyText(window.location.origin + result.share.path)} title="링크 복사">
+              <Copy size={16} />
+            </button>
+          </div>
+          <div className="password-row">
+            <code>{showPassword ? result.share.password : "******"}</code>
+            <button type="button" className="icon-button" onClick={() => setShowPassword((value) => !value)} title="비밀번호 보기">
+              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+          </div>
         </section>
       ) : null}
     </form>
@@ -449,6 +461,15 @@ function ProjectList({ adminToken, refreshKey, onDeleted }) {
       body: JSON.stringify({ password }),
     });
     window.alert("공유 비밀번호가 변경되었습니다.");
+  }
+
+  async function openEditor(projectId) {
+    const data = await api(`/api/projects/${projectId}/share-session`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${adminToken}` },
+    });
+    window.sessionStorage.setItem(`share:${projectId}`, data.token);
+    window.location.href = data.path;
   }
 
   async function openPreview(projectId) {
@@ -517,9 +538,12 @@ function ProjectList({ adminToken, refreshKey, onDeleted }) {
                 </label>
               </div>
               <div className="project-actions">
-                <a className="ghost-link" href={project.sharePath}>
-                  공유
-                </a>
+                <button className="ghost-button" onClick={() => openEditor(project.id)}>
+                  수정
+                </button>
+                <button className="icon-button" onClick={() => copyText(window.location.origin + project.sharePath)} title="링크 복사">
+                  <Copy size={16} />
+                </button>
                 <button className="ghost-button" onClick={() => openPreview(project.id)}>
                   미리보기
                 </button>
@@ -550,6 +574,22 @@ async function fetchAdminText(path, token) {
   return text;
 }
 
+async function copyText(text) {
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.style.left = "-9999px";
+  textarea.style.position = "fixed";
+  document.body.appendChild(textarea);
+  textarea.select();
+  document.execCommand("copy");
+  textarea.remove();
+}
+
 function escapeHtml(value) {
   return String(value)
     .replace(/&/g, "&amp;")
@@ -568,6 +608,7 @@ function formatDateTime(value) {
 
 function AdminHome() {
   const [refreshKey, setRefreshKey] = useState(0);
+  const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [setupState, setSetupState] = useState("checking");
   const [adminToken, setAdminToken] = useState(() => window.localStorage.getItem("adminToken") || "");
   const [admin, setAdmin] = useState(() => {
@@ -616,16 +657,31 @@ function AdminHome() {
   return (
     <main className="admin-shell">
       <header className="admin-topbar">
-        <span>{admin?.email}</span>
-        <button className="ghost-button" onClick={logout}>
-          <LogOut size={16} />
-          로그아웃
-        </button>
+        <div className="admin-actions">
+          <button className="primary-button" onClick={() => setIsUploadOpen(true)}>
+            <Upload size={16} />
+            업로드
+          </button>
+          <span>{admin?.email}</span>
+          <button className="ghost-button" onClick={logout}>
+            <LogOut size={16} />
+            로그아웃
+          </button>
+        </div>
       </header>
-      <div className="admin-grid">
-        <UploadPanel adminToken={adminToken} onUploaded={refresh} />
+      <div className="admin-grid single">
         <ProjectList adminToken={adminToken} refreshKey={refreshKey} onDeleted={refresh} />
       </div>
+      {isUploadOpen ? (
+        <div className="modal-backdrop" role="presentation" onMouseDown={() => setIsUploadOpen(false)}>
+          <div className="modal-panel" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}>
+            <button className="icon-button modal-close" onClick={() => setIsUploadOpen(false)} title="닫기">
+              <X size={16} />
+            </button>
+            <UploadPanel adminToken={adminToken} onUploaded={refresh} />
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }
@@ -649,11 +705,25 @@ function stripSpeakerPrefix(text, speakerName) {
   return textValue.slice(speaker.length).replace(/^\s*[:：>＞]?\s*/, "").trimStart();
 }
 
+function lockSpeakerMarkup(html) {
+  const template = document.createElement("template");
+  template.innerHTML = html;
+  template.content.querySelectorAll(".by, .speaker, .author, .username, .name, .message-sender, .byline").forEach((element) => {
+    element.setAttribute("contenteditable", "false");
+    element.classList.add("locked-speaker");
+  });
+  template.content.querySelectorAll("strong:first-child, b:first-child").forEach((element) => {
+    element.setAttribute("contenteditable", "false");
+    element.classList.add("locked-speaker");
+  });
+  return template.innerHTML;
+}
+
 function Block({ block, token, settings, onUpdated }) {
   const [isEditing, setIsEditing] = useState(false);
   const [status, setStatus] = useState("idle");
   const editorRef = useRef(null);
-  const cleanHtml = useMemo(() => DOMPurify.sanitize(block.rawHtml), [block.rawHtml]);
+  const cleanHtml = useMemo(() => lockSpeakerMarkup(DOMPurify.sanitize(block.rawHtml)), [block.rawHtml]);
 
   useEffect(() => {
     if (!isEditing || !editorRef.current) return;

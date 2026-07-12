@@ -159,6 +159,21 @@ test("splits mixed styled child messages into separate blocks", () => {
   assert.equal(blocks[1].textContent, "탐사자: 대답합니다");
 });
 
+test("keeps Roll20 desc anchor headings visible as editable blocks", () => {
+  const blocks = parseHtmlToBlocks(`
+    <div class="message desc" data-messageid="-Ov3Vfd-L7PQNxVck9E0">
+      <div class="spacer"></div>
+      <a style="text-decoration: none ; text-align: center ; display: block ; color: #807f85">─────── CHAPTER 0  ───────</a>
+      <a style="text-decoration: none ; color: #333333 ; text-align: center ; display: block">도입</a>
+    </div>
+  `);
+
+  assert.equal(blocks.length, 2);
+  assert.equal(blocks[0].textContent, "─────── CHAPTER 0 ───────");
+  assert.equal(blocks[1].textContent, "도입");
+  assert.match(blocks[0].rawHtml, /CHAPTER 0/);
+});
+
 test("parses actual Cocofolia span-based HTML logs with empty speaker", () => {
   const blocks = parseHtmlToBlocks(`
     <html><body>
