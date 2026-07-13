@@ -241,7 +241,7 @@ textarea:focus,
 .editor-shell {
   margin: 0 auto;
   max-width: 760px;
-  padding: 14px;
+  padding: 8px;
 }
 
 .topbar {
@@ -268,7 +268,7 @@ textarea:focus,
 
 .log-block {
   border-left: 3px solid transparent;
-  padding: 2px 0 2px 4px;
+  padding: 2px 0;
   position: relative;
   transition:
     background 0.12s ease,
@@ -456,7 +456,7 @@ textarea:focus,
 }
 
 .log-block.continuation .rendered-html .message.general {
-  padding-left: 75px !important;
+  padding-left: 60px !important;
 }
 
 .handout-text {
@@ -698,7 +698,7 @@ textarea {
   }
 
   .editor-shell {
-    padding: 12px;
+    padding: 8px;
   }
 
   .auth-panel,
