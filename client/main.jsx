@@ -737,6 +737,9 @@ function prepareEditableMarkup(html, editingTextNodeIndex = null) {
       element.classList.add("desc-align-center");
       element.style.textAlign = "center";
     }
+    element.querySelectorAll(".content > a, .content > span, .content > b, .content > strong, .content > em, .content > i, :scope > a, :scope > span, :scope > b, :scope > strong, :scope > em, :scope > i").forEach((part) => {
+      part.classList.add("desc-inline-part");
+    });
   });
   template.content.querySelectorAll("strong:first-child, b:first-child").forEach((element) => {
     element.setAttribute("contenteditable", "false");
@@ -769,7 +772,7 @@ function prepareEditableMarkup(html, editingTextNodeIndex = null) {
   return template.innerHTML;
 }
 
-function Block({ block, token, settings, onUpdated }) {
+function Block({ block, token, settings, onUpdated, isContinuation = false }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editingTextNodeIndex, setEditingTextNodeIndex] = useState(null);
   const [status, setStatus] = useState("idle");
@@ -878,7 +881,7 @@ function Block({ block, token, settings, onUpdated }) {
 
   return (
     <article
-      className={`log-block ${block.isEdited ? "edited" : ""} ${isEditing ? "editing" : ""}`}
+      className={`log-block ${block.isEdited ? "edited" : ""} ${isEditing ? "editing" : ""} ${isContinuation ? "continuation" : ""}`}
       onDoubleClick={startEditing}
       title={isEditing ? "수정 후 바깥을 클릭하면 저장됩니다." : "더블클릭해서 수정"}
     >
@@ -943,6 +946,18 @@ function Editor({ projectId, token }) {
     setBlocks((current) => current.map((block) => (block.id === updated.id ? updated : block)));
   }
 
+  function isContinuationBlock(block, previousBlock) {
+    if (!previousBlock) return false;
+    if (block.speakerName && block.speakerName === previousBlock.speakerName) return true;
+    return (
+      !block.speakerName &&
+      Boolean(previousBlock.speakerName) &&
+      block.blockType === "narration" &&
+      /class=["'][^"']*\bmessage\b[^"']*\bgeneral\b/i.test(block.rawHtml || "") &&
+      !/\bdesc\b/i.test(block.rawHtml || "")
+    );
+  }
+
   return (
     <main className="editor-shell">
       <header className="topbar">
@@ -962,8 +977,15 @@ function Editor({ projectId, token }) {
       {state === "error" ? <div className="center-state error-text">{error}</div> : null}
       {state === "ready" ? (
         <section className="log-list">
-          {blocks.map((block) => (
-            <Block key={block.id} block={block} token={token} settings={settings} onUpdated={updateBlock} />
+          {blocks.map((block, index) => (
+            <Block
+              key={block.id}
+              block={block}
+              token={token}
+              settings={settings}
+              onUpdated={updateBlock}
+              isContinuation={isContinuationBlock(block, blocks[index - 1])}
+            />
           ))}
         </section>
       ) : null}

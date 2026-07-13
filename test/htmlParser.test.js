@@ -349,6 +349,21 @@ test("keeps Roll20 desc anchor headings visible in one editable block", () => {
   assert.match(blocks[0].rawHtml, /text-align: center/);
 });
 
+test("keeps Roll20 desc with absolute inline text parts as one block", () => {
+  const blocks = parseHtmlToBlocks(`
+    <div class="message desc" data-messageid="intro" style="text-align: center;">
+      <a style="position: absolute; width: 1376px; left: 0px; display: block;">❝</a>
+      <a style="position: relative; display: block;">짓밟고 올라서라.</a>
+      <a style="position: relative; top: -5px; display: block;">written by. 와랑</a>
+    </div>
+  `);
+
+  assert.equal(blocks.length, 1);
+  assert.equal(blocks[0].blockType, "narration");
+  assert.match(blocks[0].textContent, /written by\. 와랑/);
+  assert.match(blocks[0].rawHtml, /position: absolute/);
+});
+
 test("parses rendered Roll20 HTML before Cocofolia fallback", () => {
   const blocks = parseHtmlToBlocks(`
     <body>

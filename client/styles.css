@@ -314,8 +314,6 @@ textarea:focus,
 .rendered-html .message {
   margin: 0 !important;
   max-width: 100% !important;
-  padding-left: 0 !important;
-  padding-right: 0 !important;
 }
 
 .rendered-html .message.desc {
@@ -341,13 +339,16 @@ textarea:focus,
   text-align: center !important;
 }
 
-.rendered-html .message.desc :where(.content > a, .content > span, .content > b, .content > strong, .content > em, .content > i, > a, > span, > b, > strong, > em, > i) {
+.rendered-html .message.desc .desc-inline-part {
   display: inline !important;
+  left: auto !important;
+  position: static !important;
+  top: auto !important;
+  width: auto !important;
 }
 
 .rendered-html .spacer {
-  margin-left: 0 !important;
-  margin-right: 0 !important;
+  max-width: 100%;
 }
 
 .rendered-html .by {
@@ -376,10 +377,13 @@ textarea:focus,
 }
 
 .rendered-html :where([class*="rolltemplate"], [class*="sheet-rolltemplate"]) {
+  display: inline-block !important;
   font-size: 13px;
   line-height: 1.3;
-  max-width: min(100%, 560px);
-  overflow: hidden;
+  margin-left: 0.35em;
+  max-width: min(100%, 640px);
+  overflow: visible;
+  vertical-align: top;
 }
 
 .rendered-html :where([class*="rolltemplate"], [class*="sheet-rolltemplate"]) table {
@@ -424,12 +428,8 @@ textarea:focus,
 }
 
 .rendered-html .avatar {
-  display: inline-flex !important;
-  height: 32px !important;
-  margin-right: 6px !important;
-  position: static !important;
-  vertical-align: middle !important;
-  width: 32px !important;
+  max-height: 32px;
+  max-width: 32px;
 }
 
 .rendered-html .avatar img {
@@ -466,16 +466,23 @@ textarea:focus,
   overflow-wrap: anywhere;
 }
 
+.log-block.continuation {
+  margin-left: 30px;
+}
+
 .handout-text {
   background: transparent;
   border: 0;
   border-radius: 4px;
   color: #28423a;
-  display: inline-flex;
+  display: flex;
   font-weight: 600;
+  justify-content: center;
   line-height: 1.5;
   outline: none;
   padding: 2px 4px;
+  text-align: center;
+  width: 100%;
 }
 
 .editable-surface[contenteditable="true"] {
