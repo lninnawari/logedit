@@ -25,6 +25,7 @@ const SPLITTABLE_CHILD_TAGS = new Set(["a", "article", "div", "li", "p", "sectio
 const IMAGE_URL_PATTERN = /https?:\/\/\S+\.(png|jpe?g|gif|webp)(\?\S*)?/i;
 const MARKDOWN_IMAGE_LINK_PATTERN = /^\s*(?:\/desc\s*)?\[([^\]]+)]\((https?:\/\/[^)\s]+\.(?:png|jpe?g|gif|webp)(?:\?[^)]*)?)\)\s*$/i;
 const BARE_IMAGE_URL_PATTERN = /^\s*https?:\/\/\S+\.(?:png|jpe?g|gif|webp)(?:\?\S*)?\s*$/i;
+const HANDOUT_STYLE_PROPERTIES = new Set(["font-family", "font-style", "font-weight", "color", "line-height", "text-align"]);
 
 function removeHiddenElements($) {
   $("[hidden], script, style, noscript, .hidden-message").remove();
@@ -43,8 +44,41 @@ function removeHiddenElements($) {
     .remove();
 }
 
-function makeHandoutRawHtml(description) {
-  return `<p class="handout-marker"><span class="handout-icon">${escapeHtml(DEFAULT_HANDOUT_ICON)}</span> <span class="handout-text">${escapeHtml(
+function pickHandoutStyle(style) {
+  const safeDeclarations = String(style || "")
+    .split(";")
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .filter((part) => {
+      const property = part.split(":")[0]?.trim().toLowerCase();
+      return HANDOUT_STYLE_PROPERTIES.has(property);
+    });
+
+  return safeDeclarations.join("; ");
+}
+
+function handoutStyleAttribute(style) {
+  const safeStyle = pickHandoutStyle(style);
+  return safeStyle ? ` style="${escapeHtml(safeStyle)}"` : "";
+}
+
+function extractHandoutStyleFromHtml(content) {
+  const source = String(content || "");
+  if (!hasHtmlMarkup(source)) return "";
+
+  const $ = cheerio.load(`<section id="handout-style-root">${source}</section>`, { decodeEntities: false });
+  return (
+    pickHandoutStyle($("#handout-style-root").children("[style]").first().attr("style")) ||
+    pickHandoutStyle($("#handout-style-root").find("[style]").first().attr("style"))
+  );
+}
+
+function extractGenericHandoutStyle($, element) {
+  return pickHandoutStyle($(element).attr("style")) || pickHandoutStyle($(element).find("[style]").first().attr("style"));
+}
+
+function makeHandoutRawHtml(description, style = "") {
+  return `<p class="handout-marker"${handoutStyleAttribute(style)}><span class="handout-icon">${escapeHtml(DEFAULT_HANDOUT_ICON)}</span> <span class="handout-text">${escapeHtml(
     description || DEFAULT_HANDOUT_DESCRIPTION
   )}</span></p>`;
 }
@@ -226,7 +260,7 @@ function toBlock($, element, orderIndex) {
   return {
     orderIndex,
     speakerName: extractSpeakerName($, element),
-    rawHtml: blockType === "handout" ? makeHandoutRawHtml(textContent) : $.html(element),
+    rawHtml: blockType === "handout" ? makeHandoutRawHtml(textContent, extractGenericHandoutStyle($, element)) : $.html(element),
     textContent,
     originalText: textContent,
     blockType,
@@ -596,7 +630,7 @@ function roll20MessageToBlock(entry, orderIndex, contentOverride = null) {
   const byline = speakerName ? `<span class="by">${escapeHtml(speakerName)}:</span> ` : "";
   const rawHtml =
     blockType === "handout"
-      ? makeHandoutRawHtml(textContent)
+      ? makeHandoutRawHtml(textContent, extractHandoutStyleFromHtml(replacedContent))
       : type === "desc"
         ? `<div class="message ${escapeHtml(type)}" data-messageid="${escapeHtml(id)}">${avatar}${byline}<div class="content">${htmlContent}</div></div>`
         : `<div class="message ${escapeHtml(type)}" data-messageid="${escapeHtml(id)}">${avatar}${byline}<span class="content">${htmlContent}</span></div>`;

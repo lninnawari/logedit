@@ -255,6 +255,31 @@ test("uses rendered Roll20 desc image link labels for handout markers", () => {
   assert.doesNotMatch(blocks[0].rawHtml, /handout\.png/);
 });
 
+test("keeps safe font styles for rendered Roll20 handout markers", () => {
+  const msgdata = Buffer.from(
+    JSON.stringify([
+      {
+        image: {
+          ".priority": 1,
+          type: "desc",
+          who: "",
+          content:
+            '<a href="https://example.com/handout.png" style="font-family: Pretendard, serif !important; font-size: 20px; color: rgb(1, 2, 3); position: absolute;">이미지</a>',
+        },
+      },
+    ]),
+    "utf8"
+  ).toString("base64");
+
+  const blocks = parseHtmlToBlocks(`<script>var msgdata = "${msgdata}";</script>`);
+
+  assert.equal(blocks[0].blockType, "handout");
+  assert.match(blocks[0].rawHtml, /font-family: Pretendard, serif !important/);
+  assert.match(blocks[0].rawHtml, /color: rgb\(1, 2, 3\)/);
+  assert.doesNotMatch(blocks[0].rawHtml, /font-size/);
+  assert.doesNotMatch(blocks[0].rawHtml, /position/);
+});
+
 test("keeps Roll20 desc htmlcontent when content is absent", () => {
   const msgdata = Buffer.from(
     JSON.stringify([

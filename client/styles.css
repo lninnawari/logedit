@@ -382,12 +382,13 @@ textarea:focus,
 }
 
 .rendered-html :where([class*="rolltemplate"], [class*="sheet-rolltemplate"]) {
-  display: inline-block !important;
-  margin-left: 0;
-  max-width: min(100%, 560px);
+  display: block !important;
+  margin-left: auto;
+  margin-right: 0;
+  max-width: min(100%, 620px);
   overflow: visible;
   vertical-align: top;
-  width: 560px;
+  width: 620px;
 }
 
 .rendered-html :where([class*="rolltemplate"], [class*="sheet-rolltemplate"]) table {
@@ -474,6 +475,8 @@ textarea:focus,
   border-radius: 4px;
   color: #28423a;
   display: flex;
+  font-family: Pretendard, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  font-size: 12px;
   font-weight: 600;
   justify-content: center;
   line-height: 1.5;

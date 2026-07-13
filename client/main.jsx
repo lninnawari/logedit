@@ -706,6 +706,26 @@ function formatHandoutText(block, settings) {
   return `${settings?.customHandoutIcon || "★"} ${block.textContent || "이미지/핸드아웃 위치"}`;
 }
 
+function handoutInlineStyle(block) {
+  const source = String(block?.rawHtml || "");
+  const match = source.match(/class\s*=\s*["'][^"']*\bhandout-marker\b[^"']*["'][^>]*\sstyle\s*=\s*["']([^"']*)["']/i);
+  if (!match) return undefined;
+
+  return match[1].split(";").reduce((style, declaration) => {
+    const [rawProperty, ...rawValue] = declaration.split(":");
+    const property = rawProperty?.trim().toLowerCase();
+    const value = rawValue.join(":").replace(/\s*!important\b/gi, "").trim();
+    if (!property || !value) return style;
+    if (property === "font-family") style.fontFamily = value;
+    if (property === "font-style") style.fontStyle = value;
+    if (property === "font-weight") style.fontWeight = value;
+    if (property === "color") style.color = value;
+    if (property === "line-height") style.lineHeight = value;
+    if (property === "text-align") style.textAlign = value;
+    return style;
+  }, {});
+}
+
 const EXPLICIT_SPEAKER_MARKUP_PATTERN =
   /class\s*=\s*["'][^"']*\b(by|speaker|author|username|name|message-sender|byline)\b/i;
 
@@ -775,7 +795,11 @@ function prepareEditableMarkup(html, editingTextNodeIndex = null, continuationSp
     element.setAttribute("referrerpolicy", "no-referrer");
   });
   template.content.querySelectorAll(".message.desc").forEach((element) => {
-    if (element.querySelector('[align="center"], center, [style*="text-align: center"], [style*="text-align:center"]')) {
+    if (
+      element.querySelector(
+        '[align="center"], center, strong, b, [style*="text-align: center"], [style*="text-align:center"]'
+      )
+    ) {
       element.classList.add("desc-align-center");
       element.style.textAlign = "center";
     }
@@ -933,6 +957,7 @@ function Block({ block, token, settings, onUpdated, continuationSpeakerName = ""
           <div
             ref={editorRef}
             className="handout-text editable-surface"
+            style={handoutInlineStyle(block)}
             contentEditable={isEditing}
             suppressContentEditableWarning
             onBlur={finishEditing}
