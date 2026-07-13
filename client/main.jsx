@@ -472,6 +472,17 @@ function ProjectList({ adminToken, refreshKey, onDeleted }) {
     window.location.href = data.path;
   }
 
+  async function reparseProject(projectId) {
+    if (!window.confirm("원본 HTML을 다시 분석할까요? 현재 블록 수정 내용은 원본 기준으로 초기화됩니다.")) return;
+
+    const data = await api(`/api/projects/${projectId}/reparse`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${adminToken}` },
+    });
+    await load();
+    window.alert(`${data.blockCount.toLocaleString()}개 블록으로 다시 분석했습니다.`);
+  }
+
   async function openPreview(projectId) {
     const text = await fetchAdminText(`/api/projects/${projectId}/preview`, adminToken);
     const previewWindow = window.open("", "_blank", "noopener,noreferrer");
@@ -546,6 +557,9 @@ function ProjectList({ adminToken, refreshKey, onDeleted }) {
                 </button>
                 <button className="ghost-button" onClick={() => openPreview(project.id)}>
                   미리보기
+                </button>
+                <button className="ghost-button" onClick={() => reparseProject(project.id)}>
+                  다시 분석
                 </button>
                 <button className="ghost-button" onClick={() => resetSharePassword(project.id)}>
                   비밀번호 변경

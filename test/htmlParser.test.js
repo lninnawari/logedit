@@ -173,6 +173,54 @@ test("uses markdown image labels for Roll20 desc handout markers", () => {
   assert.doesNotMatch(blocks[0].rawHtml, /handout\.png/);
 });
 
+test("uses rendered Roll20 desc image link labels for handout markers", () => {
+  const msgdata = Buffer.from(
+    JSON.stringify([
+      {
+        image: {
+          ".priority": 1,
+          type: "desc",
+          who: "",
+          content: '<a href="https://example.com/handout.png">이미지</a>',
+        },
+      },
+    ]),
+    "utf8"
+  ).toString("base64");
+
+  const blocks = parseHtmlToBlocks(`<script>var msgdata = "${msgdata}";</script>`);
+
+  assert.equal(blocks.length, 1);
+  assert.equal(blocks[0].blockType, "handout");
+  assert.equal(blocks[0].textContent, "이미지");
+  assert.doesNotMatch(blocks[0].rawHtml, /handout\.png/);
+});
+
+test("keeps Roll20 desc htmlcontent when content is absent", () => {
+  const msgdata = Buffer.from(
+    JSON.stringify([
+      {
+        desc: {
+          ".priority": 1,
+          type: "desc",
+          who: "",
+          htmlcontent: {
+            html: '<a style="display:block">도입</a>',
+          },
+        },
+      },
+    ]),
+    "utf8"
+  ).toString("base64");
+
+  const blocks = parseHtmlToBlocks(`<script>var msgdata = "${msgdata}";</script>`);
+
+  assert.equal(blocks.length, 1);
+  assert.equal(blocks[0].blockType, "narration");
+  assert.equal(blocks[0].textContent, "도입");
+  assert.match(blocks[0].rawHtml, /display:block/);
+});
+
 test("formats Roll20 sheet template messages into readable text", () => {
   const msgdata = Buffer.from(
     JSON.stringify([
