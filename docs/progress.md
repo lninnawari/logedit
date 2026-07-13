@@ -4,8 +4,8 @@
 
 - Product edition boundaries are defined in `docs/editions.md`.
 - Current codebase has been expanded to the hosted original-log upload edition.
-- It includes `AdminUser`, first-run admin setup, admin login, admin project management, public original-log upload, shared editing, and TXT preview/download.
-- It includes `/api/intake/projects` and public `/upload` as the original-log upload path.
+- It includes `AdminUser`, first-run admin setup, admin login, admin project management, one-time original-log upload links, shared editing, and TXT preview/download.
+- It includes `/api/intake/:token/projects` and admin-generated `/intake/:token` links as the original-log upload path.
 - Production Render deployment exists at `https://logedit.onrender.com/`; hosted intake code is deployed.
 
 ## Spec Phase Status
@@ -21,7 +21,7 @@
 - Phase 9 Project delete/cascade: done and verified through e2e.
 - Phase 10 Electron sales app: shell and installer packaging config implemented.
 - Phase 11 Render/deployment preparation: done; production deployment is live.
-- Phase 12 Public original-log upload: implemented for public upload and admin project visibility.
+- Phase 12 Public original-log upload: implemented as admin-generated one-time upload links with admin project visibility.
 
 ## Done
 
@@ -66,8 +66,8 @@
 - End-to-end sample test script with admin login support.
 - Shared editor browser save flow fixed so admin/share authenticated JSON requests keep `Content-Type: application/json`.
 - Shared editor edit drafts strip leading speaker labels before saving, preventing duplicated speaker text in generic HTML fallback blocks.
-- Public original-log upload page at `/upload`.
-- Public intake API at `/api/intake/projects`.
+- One-time original-log upload pages at `/intake/:token`.
+- Public intake API at `/api/intake/:token/projects`.
 - Admin project list displays block count and last saved time.
 - Public upload simplified to project title, memo, and HTML only.
 - Pasted HTML is captured from clipboard `text/html` when available instead of being flattened to plain text.
@@ -92,7 +92,7 @@
 - Cocofolia sample e2e re-verified with Neon network access: upload -> share verify -> edit -> preview/download -> delete cascade.
 - Manual browser QA verified: admin login, HTML paste upload, share password verification, block edit/save, and QA project cleanup.
 - Public upload API verified against Neon: upload -> project visible in admin list -> cleanup.
-- Production `/upload` bundle verified after deployment.
+- Production one-time intake flow should be re-verified after deployment.
 - Production intake API smoke test succeeded with `201 Created`.
 
 ## Needs User Input

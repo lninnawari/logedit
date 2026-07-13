@@ -52,15 +52,9 @@ Recommended settings if configuring manually:
 3. Create the first admin account.
 4. After setup, the same URL shows the admin login screen.
 
-## Public Upload URL
+## One-Time Upload Links
 
-Log owners can submit original HTML logs at:
-
-```text
-https://your-render-service.onrender.com/upload
-```
-
-Submitted projects appear in the admin project list and can then be edited, previewed, and downloaded as TXT.
+Create a one-time upload link from the admin project page. Each generated `/intake/:token` link accepts exactly one original HTML upload. Submitted projects appear in the admin project list and can then be edited, previewed, and downloaded as TXT.
 
 ## Admin Password Changes
 
@@ -88,6 +82,6 @@ After deployment:
 ## Operator Flow
 
 - Admin page: `/`
-- Public original-log upload page: `/upload`
+- One-time original-log upload links: `/intake/:token`
 - Participant edit links: `/share/:projectId`
 - Health check: `/health`

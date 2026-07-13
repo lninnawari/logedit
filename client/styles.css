@@ -819,6 +819,29 @@ textarea {
   padding: 3px 6px;
 }
 
+.upload-link-notice {
+  align-items: center;
+  background: #f5faf7;
+  border: 1px solid #d8e6df;
+  border-radius: 8px;
+  color: #3e514b;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  padding: 10px 12px;
+}
+
+.upload-link-notice code {
+  background: #ffffff;
+  border: 1px solid #dce7e1;
+  border-radius: 5px;
+  color: #1d2428;
+  overflow: hidden;
+  padding: 5px 7px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .tiny-icon-button,
 .inline-text-button {
   align-items: center;
@@ -922,5 +945,9 @@ textarea {
   .panel-header-actions {
     flex-wrap: wrap;
     justify-content: flex-end;
+  }
+
+  .upload-link-notice {
+    grid-template-columns: 1fr;
   }
 }

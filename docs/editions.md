@@ -120,8 +120,8 @@ Required:
 
 Implemented in the hosted upload baseline:
 
-- Public upload endpoint: `/api/intake/projects`.
-- Public upload page: `/upload`.
+- One-time public upload endpoint: `/api/intake/:token/projects`.
+- One-time public upload page: `/intake/:token`.
 - Admin visibility through the normal project list.
 
 ## Current Repository State
@@ -131,8 +131,8 @@ The current repository has been expanded from the Basic Distribution baseline to
 - It has `AdminUser`, first-run admin setup, and admin login.
 - It has admin-only project upload/management.
 - It has shared participant editing.
-- It has `/api/intake/projects` for public original-log uploads.
-- It has a public `/upload` page for log owners.
+- It has `/api/intake/:token/projects` for one-time original-log uploads.
+- It has admin-generated `/intake/:token` pages for log owners.
 - Public uploads appear in the admin project list.
 
 Therefore:

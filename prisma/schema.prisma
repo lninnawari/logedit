@@ -37,6 +37,7 @@ model Project {
   blocks             MessageBlock[]
   shareLink          ShareLink?
   correctionSettings CorrectionSettings?
+  uploadLink         UploadLink?
 
   @@map("projects")
 }
@@ -96,7 +97,21 @@ model ShareLink {
 }
 
 // ------------------------------------------------------------
-// 4. 교정 규칙 설정 (프로젝트별로 어떤 규칙을 켜고 끌지, 커스텀 문자는 뭘로 할지)
+// 4. 1회용 원본 로그 업로드 링크
+// ------------------------------------------------------------
+model UploadLink {
+  id                String   @id @default(uuid())
+  uploadedProjectId String?  @unique
+  uploadedProject   Project? @relation(fields: [uploadedProjectId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime  @default(now())
+  usedAt    DateTime?
+
+  @@map("upload_links")
+}
+
+// ------------------------------------------------------------
+// 5. 교정 규칙 설정 (프로젝트별로 어떤 규칙을 켜고 끌지, 커스텀 문자는 뭘로 할지)
 // ------------------------------------------------------------
 model CorrectionSettings {
   id        String  @id @default(uuid())
@@ -121,7 +136,7 @@ model CorrectionSettings {
 }
 
 // ------------------------------------------------------------
-// 5. 관리자 계정
+// 6. 관리자 계정
 //    기본 배포 버전에서도 원격 접속/Render 배포를 보호하기 위해 유지한다.
 // ------------------------------------------------------------
 

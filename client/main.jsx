@@ -32,7 +32,12 @@ function isSharePath() {
 }
 
 function isIntakePath() {
-  return window.location.pathname === "/upload";
+  return /^\/intake\/[^/]+\/?$/.test(window.location.pathname);
+}
+
+function getIntakeToken() {
+  const match = window.location.pathname.match(/^\/intake\/([^/]+)\/?$/);
+  return match ? match[1] : "";
 }
 
 async function api(path, options = {}) {
@@ -266,7 +271,7 @@ function AdminSetup({ onSetup }) {
   );
 }
 
-function PublicUploadPage() {
+function PublicUploadPage({ intakeToken }) {
   const [title, setTitle] = useState("");
   const [notes, setNotes] = useState("");
   const [sourceType, setSourceType] = useState("roll20");
@@ -274,8 +279,18 @@ function PublicUploadPage() {
   const [file, setFile] = useState(null);
   const [html, setHtml] = useState("");
   const [result, setResult] = useState(null);
+  const [linkState, setLinkState] = useState("checking");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    api(`/api/intake/${intakeToken}`)
+      .then((data) => setLinkState(data.used ? "used" : "ready"))
+      .catch((err) => {
+        setError(err.message);
+        setLinkState("invalid");
+      });
+  }, [intakeToken]);
 
   async function submit(event) {
     event.preventDefault();
@@ -292,7 +307,7 @@ function PublicUploadPage() {
       if (file) formData.set("htmlFile", file);
       if (!file && html) formData.set("html", html);
 
-      const response = await fetch("/api/intake/projects", {
+      const response = await fetch(`/api/intake/${intakeToken}/projects`, {
         method: "POST",
         body: formData,
       });
@@ -300,6 +315,7 @@ function PublicUploadPage() {
       if (!response.ok) throw new Error(body.error || "업로드에 실패했습니다.");
 
       setResult(body);
+      setLinkState("used");
       setTitle("");
       setNotes("");
       setCustomHandoutIcon("★");
@@ -319,6 +335,11 @@ function PublicUploadPage() {
           <h1>로그 원본 업로드</h1>
           <p>프로젝트명은 닉네임 - 시나리오 제목 형식으로 적어주세요.</p>
         </header>
+        {linkState === "checking" ? <p className="muted-text">업로드 링크 확인 중</p> : null}
+        {linkState === "invalid" ? <p className="error-text">{error || "유효하지 않은 업로드 링크입니다."}</p> : null}
+        {linkState === "used" && !result ? <p className="error-text">이미 사용된 업로드 링크입니다.</p> : null}
+        {linkState === "ready" ? (
+          <>
         <label htmlFor="requestTitle">프로젝트명</label>
         <input id="requestTitle" value={title} onChange={(event) => setTitle(event.target.value)} placeholder="닉네임 - 시나리오 제목" required />
         <label htmlFor="requestSourceType">로그 종류</label>
@@ -347,6 +368,8 @@ function PublicUploadPage() {
           {isSubmitting ? <Loader2 className="spin" size={18} /> : <Send size={18} />}
           업로드
         </button>
+          </>
+        ) : null}
         {result ? (
           <section className="result-panel">
             <h2>업로드되었습니다</h2>
@@ -470,6 +493,7 @@ function ProjectList({ adminToken, refreshKey, onDeleted, onUpload, knownPasswor
   const [state, setState] = useState("loading");
   const [error, setError] = useState("");
   const [visiblePasswords, setVisiblePasswords] = useState({});
+  const [uploadLink, setUploadLink] = useState("");
 
   async function load() {
     setState("loading");
@@ -524,6 +548,17 @@ function ProjectList({ adminToken, refreshKey, onDeleted, onUpload, knownPasswor
     }, 2200);
   }
 
+  async function createUploadLink() {
+    const data = await api("/api/projects/upload-links", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${adminToken}` },
+    });
+    const absoluteUrl = window.location.origin + data.path;
+    setUploadLink(absoluteUrl);
+    await copyText(absoluteUrl);
+    window.alert("1회용 업로드 링크를 생성해서 복사했습니다.");
+  }
+
   async function openEditor(projectId) {
     const data = await api(`/api/projects/${projectId}/share-session`, {
       method: "POST",
@@ -562,12 +597,25 @@ function ProjectList({ adminToken, refreshKey, onDeleted, onUpload, knownPasswor
             <RefreshCw size={14} />
             새로고침
           </button>
+          <button className="ghost-button compact-button" onClick={createUploadLink}>
+            업로드 링크 생성
+          </button>
           <button className="primary-button compact-button" onClick={onUpload}>
             <Upload size={15} />
             업로드
           </button>
         </div>
       </header>
+      {uploadLink ? (
+        <div className="upload-link-notice">
+          <span>1회용 업로드 링크</span>
+          <code>{uploadLink}</code>
+          <button type="button" className="ghost-button compact-button" onClick={() => copyText(uploadLink)}>
+            <Copy size={14} />
+            복사
+          </button>
+        </div>
+      ) : null}
       {state === "loading" ? <p className="muted-text">불러오는 중</p> : null}
       {state === "error" ? <p className="error-text">{error}</p> : null}
       {state === "ready" && projects.length === 0 ? <p className="muted-text">아직 프로젝트가 없습니다.</p> : null}
@@ -1299,6 +1347,7 @@ function Editor({ projectId, token }) {
 
 function App() {
   const projectId = getProjectId();
+  const intakeToken = getIntakeToken();
   const [token, setToken] = useState(() => window.sessionStorage.getItem(`share:${projectId}`) || "");
 
   function handleToken(nextToken) {
@@ -1307,7 +1356,7 @@ function App() {
   }
 
   if (isIntakePath()) {
-    return <PublicUploadPage />;
+    return <PublicUploadPage intakeToken={intakeToken} />;
   }
 
   if (!isSharePath()) {

@@ -26,8 +26,39 @@ const intakeProjectSchema = z.object({
   customHandoutIcon: z.string().trim().min(1).max(8).optional(),
 });
 
+router.get(
+  "/:token",
+  asyncHandler(async (req, res) => {
+    const uploadLink = await prisma.uploadLink.findUnique({
+      where: { id: req.params.token },
+      select: {
+        id: true,
+        createdAt: true,
+        usedAt: true,
+        uploadedProject: {
+          select: {
+            id: true,
+            title: true,
+            createdAt: true,
+          },
+        },
+      },
+    });
+
+    if (!uploadLink) return res.status(404).json({ error: "Upload link not found." });
+
+    res.json({
+      id: uploadLink.id,
+      createdAt: uploadLink.createdAt,
+      usedAt: uploadLink.usedAt,
+      used: Boolean(uploadLink.usedAt),
+      uploadedProject: uploadLink.uploadedProject,
+    });
+  })
+);
+
 router.post(
-  "/projects",
+  "/:token/projects",
   upload.single("htmlFile"),
   asyncHandler(async (req, res) => {
     const input = intakeProjectSchema.parse(req.body);
@@ -42,26 +73,55 @@ router.post(
     const sharePassword = generateSharePassword();
     const passwordHash = await bcrypt.hash(sharePassword, 12);
 
-    const project = await prisma.project.create({
-      data: {
-        title: input.title,
-        status: "editing",
-        originalHtml,
-        blocks: {
-          create: blocks,
+    const project = await prisma.$transaction(async (tx) => {
+      const claimed = await tx.uploadLink.updateMany({
+        where: {
+          id: req.params.token,
+          usedAt: null,
         },
-        shareLink: {
-          create: { passwordHash },
+        data: {
+          usedAt: new Date(),
         },
-        correctionSettings: {
-          create: {
-            customHandoutIcon: input.customHandoutIcon || undefined,
+      });
+
+      if (claimed.count !== 1) {
+        const existing = await tx.uploadLink.findUnique({
+          where: { id: req.params.token },
+          select: { id: true, usedAt: true },
+        });
+        const error = new Error(existing ? "Upload link has already been used." : "Upload link not found.");
+        error.status = existing ? 410 : 404;
+        throw error;
+      }
+
+      const createdProject = await tx.project.create({
+        data: {
+          title: input.title,
+          status: "editing",
+          originalHtml,
+          blocks: {
+            create: blocks,
+          },
+          shareLink: {
+            create: { passwordHash },
+          },
+          correctionSettings: {
+            create: {
+              customHandoutIcon: input.customHandoutIcon || undefined,
+            },
           },
         },
-      },
-      include: {
-        _count: { select: { blocks: true } },
-      },
+        include: {
+          _count: { select: { blocks: true } },
+        },
+      });
+
+      await tx.uploadLink.update({
+        where: { id: req.params.token },
+        data: { uploadedProjectId: createdProject.id },
+      });
+
+      return createdProject;
     });
 
     res.status(201).json({

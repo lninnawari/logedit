@@ -87,6 +87,27 @@ router.get(
 );
 
 router.post(
+  "/upload-links",
+  asyncHandler(async (_req, res) => {
+    const uploadLink = await prisma.uploadLink.create({
+      data: {},
+      select: {
+        id: true,
+        createdAt: true,
+        usedAt: true,
+      },
+    });
+
+    res.status(201).json({
+      id: uploadLink.id,
+      path: `/intake/${uploadLink.id}`,
+      createdAt: uploadLink.createdAt,
+      usedAt: uploadLink.usedAt,
+    });
+  })
+);
+
+router.post(
   "/",
   upload.single("htmlFile"),
   asyncHandler(async (req, res) => {
