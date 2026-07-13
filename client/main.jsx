@@ -252,6 +252,7 @@ function AdminSetup({ onSetup }) {
 function PublicUploadPage() {
   const [title, setTitle] = useState("");
   const [notes, setNotes] = useState("");
+  const [sourceType, setSourceType] = useState("roll20");
   const [file, setFile] = useState(null);
   const [html, setHtml] = useState("");
   const [result, setResult] = useState(null);
@@ -268,6 +269,7 @@ function PublicUploadPage() {
       const formData = new FormData();
       if (notes) formData.set("notes", notes);
       formData.set("title", title);
+      formData.set("sourceType", sourceType);
       if (file) formData.set("htmlFile", file);
       if (!file && html) formData.set("html", html);
 
@@ -299,6 +301,12 @@ function PublicUploadPage() {
         </header>
         <label htmlFor="requestTitle">프로젝트명</label>
         <input id="requestTitle" value={title} onChange={(event) => setTitle(event.target.value)} placeholder="닉네임 - 시나리오 제목" required />
+        <label htmlFor="requestSourceType">로그 종류</label>
+        <select id="requestSourceType" value={sourceType} onChange={(event) => setSourceType(event.target.value)}>
+          <option value="roll20">Roll20</option>
+          <option value="cocofolia">코코포리아</option>
+          <option value="auto">자동 감지</option>
+        </select>
         <label htmlFor="requestNotes">메모</label>
         <textarea id="requestNotes" value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="같이 전달할 내용이 있다면 적어주세요." />
         <label htmlFor="requestFile">HTML 파일</label>
@@ -325,6 +333,7 @@ function PublicUploadPage() {
 function UploadPanel({ adminToken, onUploaded }) {
   const [title, setTitle] = useState("");
   const [password, setPassword] = useState("");
+  const [sourceType, setSourceType] = useState("roll20");
   const [file, setFile] = useState(null);
   const [html, setHtml] = useState("");
   const [result, setResult] = useState(null);
@@ -342,6 +351,7 @@ function UploadPanel({ adminToken, onUploaded }) {
       const formData = new FormData();
       formData.set("title", title || "Untitled log");
       if (password) formData.set("password", password);
+      formData.set("sourceType", sourceType);
       if (file) formData.set("htmlFile", file);
       if (!file && html) formData.set("html", html);
 
@@ -378,6 +388,12 @@ function UploadPanel({ adminToken, onUploaded }) {
         onChange={(event) => setPassword(event.target.value)}
         placeholder="비워두면 자동 생성"
       />
+      <label htmlFor="sourceType">로그 종류</label>
+      <select id="sourceType" value={sourceType} onChange={(event) => setSourceType(event.target.value)}>
+        <option value="roll20">Roll20</option>
+        <option value="cocofolia">코코포리아</option>
+        <option value="auto">자동 감지</option>
+      </select>
       <label htmlFor="htmlFile">HTML 파일</label>
       <input id="htmlFile" type="file" accept=".html,text/html" onChange={(event) => setFile(event.target.files?.[0] || null)} />
       <label htmlFor="html">HTML 붙여넣기</label>

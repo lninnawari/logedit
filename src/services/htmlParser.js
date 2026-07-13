@@ -648,8 +648,22 @@ function escapeHtml(value) {
     .replace(/"/g, "&quot;");
 }
 
-function parseHtmlToBlocks(html) {
+function parseHtmlToBlocks(html, options = {}) {
   const source = typeof html === "string" ? html : "";
+  const sourceType = options.sourceType || "auto";
+
+  if (sourceType === "roll20") {
+    const roll20Blocks = parseRoll20Msgdata(source);
+    if (roll20Blocks && roll20Blocks.length > 0) return roll20Blocks;
+    return parseGenericHtmlToBlocks(source);
+  }
+
+  if (sourceType === "cocofolia") {
+    const cocofoliaBlocks = parseCocofoliaStatic(source);
+    if (cocofoliaBlocks && cocofoliaBlocks.length > 0) return cocofoliaBlocks;
+    return parseGenericHtmlToBlocks(source);
+  }
+
   const roll20Blocks = parseRoll20Msgdata(source);
   if (roll20Blocks && roll20Blocks.length > 0) return roll20Blocks;
 

@@ -22,6 +22,7 @@ const intakeProjectSchema = z.object({
   notes: z.string().trim().max(5000).optional(),
   title: z.string().trim().min(1),
   html: z.string().min(1).optional(),
+  sourceType: z.enum(["auto", "roll20", "cocofolia"]).default("auto"),
 });
 
 router.post(
@@ -36,7 +37,7 @@ router.post(
       return res.status(400).json({ error: "html text or htmlFile upload is required." });
     }
 
-    const blocks = parseHtmlToBlocks(originalHtml);
+    const blocks = parseHtmlToBlocks(originalHtml, { sourceType: input.sourceType });
     const sharePassword = generateSharePassword();
     const passwordHash = await bcrypt.hash(sharePassword, 12);
 

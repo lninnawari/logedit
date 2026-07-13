@@ -26,6 +26,7 @@ const createProjectSchema = z.object({
   title: z.string().trim().min(1).default("Untitled log"),
   html: z.string().min(1).optional(),
   password: z.string().min(6).optional(),
+  sourceType: z.enum(["auto", "roll20", "cocofolia"]).default("auto"),
 });
 
 const updateStatusSchema = z.object({
@@ -95,7 +96,7 @@ router.post(
       return res.status(400).json({ error: "html text or htmlFile upload is required." });
     }
 
-    const blocks = parseHtmlToBlocks(originalHtml);
+    const blocks = parseHtmlToBlocks(originalHtml, { sourceType: input.sourceType });
     const plainPassword = input.password || generateSharePassword();
     const passwordHash = await bcrypt.hash(plainPassword, 12);
 

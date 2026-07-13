@@ -346,6 +346,22 @@ test("parses rendered Roll20 HTML before Cocofolia fallback", () => {
   assert.match(blocks[2].rawHtml, /class="avatar"/);
 });
 
+test("uses explicit source type to parse Cocofolia before generic HTML", () => {
+  const blocks = parseHtmlToBlocks(
+    `
+      <p style="color:#333333;">[main] KP : 문이 열립니다.</p>
+      <p style="color:#0055aa;">[main] PC : 들어갑니다.</p>
+    `,
+    { sourceType: "cocofolia" }
+  );
+
+  assert.equal(blocks.length, 2);
+  assert.equal(blocks[0].speakerName, "KP");
+  assert.equal(blocks[0].textContent, "문이 열립니다.");
+  assert.equal(blocks[1].speakerName, "PC");
+  assert.equal(blocks[1].textContent, "들어갑니다.");
+});
+
 test("splits nested styled Roll20 desc children instead of dropping them", () => {
   const msgdata = Buffer.from(
     JSON.stringify([
