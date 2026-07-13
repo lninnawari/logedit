@@ -270,6 +270,7 @@ function PublicUploadPage() {
   const [title, setTitle] = useState("");
   const [notes, setNotes] = useState("");
   const [sourceType, setSourceType] = useState("roll20");
+  const [customHandoutIcon, setCustomHandoutIcon] = useState("★");
   const [file, setFile] = useState(null);
   const [html, setHtml] = useState("");
   const [result, setResult] = useState(null);
@@ -287,6 +288,7 @@ function PublicUploadPage() {
       if (notes) formData.set("notes", notes);
       formData.set("title", title);
       formData.set("sourceType", sourceType);
+      formData.set("customHandoutIcon", customHandoutIcon || "★");
       if (file) formData.set("htmlFile", file);
       if (!file && html) formData.set("html", html);
 
@@ -300,6 +302,7 @@ function PublicUploadPage() {
       setResult(body);
       setTitle("");
       setNotes("");
+      setCustomHandoutIcon("★");
       setFile(null);
       setHtml("");
     } catch (err) {
@@ -324,6 +327,15 @@ function PublicUploadPage() {
           <option value="cocofolia">코코포리아</option>
           <option value="auto">자동 감지</option>
         </select>
+        <label htmlFor="requestHandoutIcon">이미지 아이콘</label>
+        <input
+          id="requestHandoutIcon"
+          className="short-input"
+          value={customHandoutIcon}
+          onChange={(event) => setCustomHandoutIcon(event.target.value)}
+          maxLength={8}
+          placeholder="★"
+        />
         <label htmlFor="requestNotes">메모</label>
         <textarea id="requestNotes" value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="같이 전달할 내용이 있다면 적어주세요." />
         <label htmlFor="requestFile">HTML 파일</label>
@@ -351,6 +363,7 @@ function UploadPanel({ adminToken, onUploaded }) {
   const [title, setTitle] = useState("");
   const [password, setPassword] = useState("");
   const [sourceType, setSourceType] = useState("roll20");
+  const [customHandoutIcon, setCustomHandoutIcon] = useState("★");
   const [file, setFile] = useState(null);
   const [html, setHtml] = useState("");
   const [result, setResult] = useState(null);
@@ -369,6 +382,7 @@ function UploadPanel({ adminToken, onUploaded }) {
       formData.set("title", title || "Untitled log");
       if (password) formData.set("password", password);
       formData.set("sourceType", sourceType);
+      formData.set("customHandoutIcon", customHandoutIcon || "★");
       if (file) formData.set("htmlFile", file);
       if (!file && html) formData.set("html", html);
 
@@ -383,7 +397,7 @@ function UploadPanel({ adminToken, onUploaded }) {
       if (!response.ok) throw new Error(body.error || "업로드에 실패했습니다.");
       setResult(body);
       setShowPassword(false);
-      onUploaded();
+      onUploaded(body);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -411,6 +425,15 @@ function UploadPanel({ adminToken, onUploaded }) {
         <option value="cocofolia">코코포리아</option>
         <option value="auto">자동 감지</option>
       </select>
+      <label htmlFor="customHandoutIcon">이미지 아이콘</label>
+      <input
+        id="customHandoutIcon"
+        className="short-input"
+        value={customHandoutIcon}
+        onChange={(event) => setCustomHandoutIcon(event.target.value)}
+        maxLength={8}
+        placeholder="★"
+      />
       <label htmlFor="htmlFile">HTML 파일</label>
       <input id="htmlFile" type="file" accept=".html,text/html" onChange={(event) => setFile(event.target.files?.[0] || null)} />
       <label htmlFor="html">HTML 붙여넣기</label>
@@ -442,10 +465,11 @@ function UploadPanel({ adminToken, onUploaded }) {
   );
 }
 
-function ProjectList({ adminToken, refreshKey, onDeleted }) {
+function ProjectList({ adminToken, refreshKey, onDeleted, onUpload, knownPasswords, onPasswordKnown }) {
   const [projects, setProjects] = useState([]);
   const [state, setState] = useState("loading");
   const [error, setError] = useState("");
+  const [visiblePasswords, setVisiblePasswords] = useState({});
 
   async function load() {
     setState("loading");
@@ -476,15 +500,6 @@ function ProjectList({ adminToken, refreshKey, onDeleted }) {
     load();
   }
 
-  async function updateHandoutIcon(projectId, customHandoutIcon) {
-    await api(`/api/projects/${projectId}/correction-settings`, {
-      method: "PATCH",
-      headers: { Authorization: `Bearer ${adminToken}` },
-      body: JSON.stringify({ customHandoutIcon }),
-    });
-    load();
-  }
-
   async function resetSharePassword(projectId) {
     const password = window.prompt("새 공유 비밀번호를 입력하세요. 최소 6자입니다.");
     if (!password) return;
@@ -493,7 +508,20 @@ function ProjectList({ adminToken, refreshKey, onDeleted }) {
       headers: { Authorization: `Bearer ${adminToken}` },
       body: JSON.stringify({ password }),
     });
+    onPasswordKnown(projectId, password);
+    setVisiblePasswords((current) => ({ ...current, [projectId]: true }));
+    window.setTimeout(() => {
+      setVisiblePasswords((current) => ({ ...current, [projectId]: false }));
+    }, 2200);
     window.alert("공유 비밀번호가 변경되었습니다.");
+  }
+
+  function showPasswordBriefly(projectId) {
+    if (!knownPasswords[projectId]) return;
+    setVisiblePasswords((current) => ({ ...current, [projectId]: true }));
+    window.setTimeout(() => {
+      setVisiblePasswords((current) => ({ ...current, [projectId]: false }));
+    }, 2200);
   }
 
   async function openEditor(projectId) {
@@ -529,9 +557,16 @@ function ProjectList({ adminToken, refreshKey, onDeleted }) {
     <section className="project-panel">
       <header className="panel-header">
         <h2>프로젝트</h2>
-        <button className="icon-button" onClick={load} title="새로고침">
-          <RefreshCw size={18} />
-        </button>
+        <div className="panel-header-actions">
+          <button className="ghost-button compact-button" onClick={load} title="새로고침">
+            <RefreshCw size={14} />
+            새로고침
+          </button>
+          <button className="primary-button compact-button" onClick={onUpload}>
+            <Upload size={15} />
+            업로드
+          </button>
+        </div>
       </header>
       {state === "loading" ? <p className="muted-text">불러오는 중</p> : null}
       {state === "error" ? <p className="error-text">{error}</p> : null}
@@ -540,48 +575,36 @@ function ProjectList({ adminToken, refreshKey, onDeleted }) {
         <div className="project-list">
           {projects.map((project) => (
             <article className="project-item" key={project.id}>
-              <div>
+              <div className="project-summary">
                 <h3>{project.title}</h3>
-                <p>
-                  {project.blockCount.toLocaleString()} blocks · 최종 저장 {formatDateTime(project.updatedAt)}
-                </p>
-                <label className="compact-setting">
-                  이미지 아이콘
-                  <input
-                    value={project.correctionSettings?.customHandoutIcon || "★"}
-                    maxLength={8}
-                    onChange={(event) => {
-                      const value = event.target.value || "★";
-                      setProjects((current) =>
-                        current.map((item) =>
-                          item.id === project.id
-                            ? {
-                                ...item,
-                                correctionSettings: {
-                                  ...(item.correctionSettings || {}),
-                                  customHandoutIcon: value,
-                                },
-                              }
-                            : item
-                        )
-                      );
-                    }}
-                    onBlur={(event) => updateHandoutIcon(project.id, event.target.value || "★")}
-                  />
-                </label>
+                <p>최종 저장 {formatDateTime(project.updatedAt)}</p>
+                <p>이미지 아이콘 {project.correctionSettings?.customHandoutIcon || "★"}</p>
+                <div className="project-password-line">
+                  <span>비밀번호</span>
+                  <code>{visiblePasswords[project.id] && knownPasswords[project.id] ? knownPasswords[project.id] : "******"}</code>
+                  <button
+                    type="button"
+                    className="tiny-icon-button"
+                    onClick={() => showPasswordBriefly(project.id)}
+                    disabled={!knownPasswords[project.id]}
+                    title={knownPasswords[project.id] ? "비밀번호 잠깐 보기" : "현재 브라우저에 저장된 비밀번호가 없습니다"}
+                  >
+                    <Eye size={13} />
+                  </button>
+                  <button type="button" className="inline-text-button" onClick={() => resetSharePassword(project.id)}>
+                    비밀번호 변경
+                  </button>
+                </div>
               </div>
               <div className="project-actions">
-                <button className="ghost-button" onClick={() => openEditor(project.id)}>
+                <button className="ghost-button text-only-button" onClick={() => openEditor(project.id)}>
                   수정
                 </button>
-                <button className="icon-button" onClick={() => copyText(window.location.origin + project.sharePath)} title="링크 복사">
-                  <Copy size={16} />
-                </button>
-                <button className="ghost-button" onClick={() => openPreview(project.id)}>
+                <button className="ghost-button text-only-button" onClick={() => openPreview(project.id)}>
                   미리보기
                 </button>
-                <button className="ghost-button" onClick={() => resetSharePassword(project.id)}>
-                  비밀번호 변경
+                <button className="ghost-button text-only-button" onClick={() => copyText(window.location.origin + project.sharePath)}>
+                  링크복사
                 </button>
                 <button className="icon-button" onClick={() => downloadTxt(project.id)} title="TXT 다운로드">
                   <Download size={17} />
@@ -642,6 +665,7 @@ function formatDateTime(value) {
 function AdminHome() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
+  const [knownPasswords, setKnownPasswords] = useState({});
   const [setupState, setSetupState] = useState("checking");
   const [adminToken, setAdminToken] = useState(() => window.localStorage.getItem("adminToken") || "");
   const [admin, setAdmin] = useState(() => {
@@ -649,6 +673,15 @@ function AdminHome() {
     return raw ? JSON.parse(raw) : null;
   });
   const refresh = () => setRefreshKey((value) => value + 1);
+  const rememberPassword = (projectId, password) => {
+    setKnownPasswords((current) => ({ ...current, [projectId]: password }));
+  };
+  const handleUploaded = (result) => {
+    if (result?.projectId && result?.share?.password) {
+      rememberPassword(result.projectId, result.share.password);
+    }
+    refresh();
+  };
 
   useEffect(() => {
     api("/api/setup/status")
@@ -691,10 +724,6 @@ function AdminHome() {
     <main className="admin-shell">
       <header className="admin-topbar">
         <div className="admin-actions">
-          <button className="primary-button" onClick={() => setIsUploadOpen(true)}>
-            <Upload size={16} />
-            업로드
-          </button>
           <span>{admin?.email}</span>
           <button className="ghost-button" onClick={logout}>
             <LogOut size={16} />
@@ -703,7 +732,14 @@ function AdminHome() {
         </div>
       </header>
       <div className="admin-grid single">
-        <ProjectList adminToken={adminToken} refreshKey={refreshKey} onDeleted={refresh} />
+        <ProjectList
+          adminToken={adminToken}
+          refreshKey={refreshKey}
+          onDeleted={refresh}
+          onUpload={() => setIsUploadOpen(true)}
+          knownPasswords={knownPasswords}
+          onPasswordKnown={rememberPassword}
+        />
       </div>
       {isUploadOpen ? (
         <div className="modal-backdrop" role="presentation" onMouseDown={() => setIsUploadOpen(false)}>
@@ -711,7 +747,7 @@ function AdminHome() {
             <button className="icon-button modal-close" onClick={() => setIsUploadOpen(false)} title="닫기">
               <X size={16} />
             </button>
-            <UploadPanel adminToken={adminToken} onUploaded={refresh} />
+            <UploadPanel adminToken={adminToken} onUploaded={handleUploaded} />
           </div>
         </div>
       ) : null}

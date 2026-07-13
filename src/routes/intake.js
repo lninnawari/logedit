@@ -23,6 +23,7 @@ const intakeProjectSchema = z.object({
   title: z.string().trim().min(1),
   html: z.string().min(1).optional(),
   sourceType: z.enum(["auto", "roll20", "cocofolia"]).default("auto"),
+  customHandoutIcon: z.string().trim().min(1).max(8).optional(),
 });
 
 router.post(
@@ -53,7 +54,9 @@ router.post(
           create: { passwordHash },
         },
         correctionSettings: {
-          create: {},
+          create: {
+            customHandoutIcon: input.customHandoutIcon || undefined,
+          },
         },
       },
       include: {

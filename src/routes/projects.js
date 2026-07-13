@@ -28,6 +28,7 @@ const createProjectSchema = z.object({
   html: z.string().min(1).optional(),
   password: z.string().min(6).optional(),
   sourceType: z.enum(["auto", "roll20", "cocofolia"]).default("auto"),
+  customHandoutIcon: z.string().trim().min(1).max(8).optional(),
 });
 
 const updateStatusSchema = z.object({
@@ -112,7 +113,9 @@ router.post(
           create: { passwordHash },
         },
         correctionSettings: {
-          create: {},
+          create: {
+            customHandoutIcon: input.customHandoutIcon || undefined,
+          },
         },
       },
       include: {
