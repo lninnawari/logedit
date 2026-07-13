@@ -421,27 +421,15 @@ textarea:focus,
 }
 
 .rendered-html .character-avatar {
-  border-radius: 4px;
-  display: inline-block;
-  height: 32px;
-  margin-right: 6px;
-  object-fit: cover;
-  vertical-align: middle;
-  width: 32px;
+  display: none !important;
 }
 
 .rendered-html .avatar {
-  max-height: 32px;
-  max-width: 32px;
+  display: none !important;
 }
 
 .rendered-html .avatar img {
-  border-radius: 4px;
-  height: 32px !important;
-  max-height: 32px !important;
-  max-width: 32px !important;
-  object-fit: cover;
-  width: 32px !important;
+  display: none !important;
 }
 
 .rendered-html .editable-part {

@@ -29,8 +29,8 @@ const HANDOUT_STYLE_PROPERTIES = new Set(["font-family", "font-style", "font-wei
 
 function removeHiddenElements($) {
   $("[hidden], script, style, noscript, .hidden-message").remove();
+  $(".avatar, .character-avatar, img.avatar, img.character-avatar").remove();
   $("[aria-hidden='true']").each((_index, element) => {
-    if ($(element).hasClass("avatar") || $(element).find("img, picture, video").length > 0) return;
     $(element).remove();
   });
   $("[style]").each((_index, element) => {
@@ -540,57 +540,6 @@ function extractRoll20HandoutDescription(message, formattedContent, sourceConten
   );
 }
 
-function findImageLikeUrl(value, preferredKey = "") {
-  if (value == null) return null;
-
-  if (typeof value === "string") {
-    const text = value.trim();
-    if (!/^https?:\/\//i.test(text)) return null;
-    if (preferredKey && /(avatar|img|image|icon|src|picture|thumb|url)/i.test(preferredKey)) return text;
-    return IMAGE_URL_PATTERN.test(text) ? text : null;
-  }
-
-  if (Array.isArray(value)) {
-    for (const item of value) {
-      const found = findImageLikeUrl(item, preferredKey);
-      if (found) return found;
-    }
-    return null;
-  }
-
-  if (typeof value === "object") {
-    const entries = Object.entries(value);
-    const preferredEntries = entries.filter(([key]) => /(avatar|img|image|icon|src|picture|thumb|url)/i.test(key));
-    const otherEntries = entries.filter(([key]) => !/(avatar|img|image|icon|src|picture|thumb|url)/i.test(key));
-
-    for (const [key, nestedValue] of [...preferredEntries, ...otherEntries]) {
-      const found = findImageLikeUrl(nestedValue, key);
-      if (found) return found;
-    }
-  }
-
-  return null;
-}
-
-function makeAvatarHtml(message) {
-  const avatarUrl = findImageLikeUrl({
-    avatar: message.avatar,
-    avatarURL: message.avatarURL,
-    avatarUrl: message.avatarUrl,
-    imgsrc: message.imgsrc,
-    image: message.image,
-    picture: message.picture,
-    icon: message.icon,
-    thumb: message.thumb,
-    player: message.player,
-    character: message.character,
-    speakingas: message.speakingas,
-    who: null,
-  });
-  if (!avatarUrl || !/^https?:\/\//i.test(String(avatarUrl))) return "";
-  return `<img class="character-avatar" src="${escapeHtml(avatarUrl)}" alt="" aria-hidden="true">`;
-}
-
 function objectContentToString(value) {
   if (value == null) return "";
   if (typeof value === "string") return value;
@@ -626,14 +575,13 @@ function roll20MessageToBlock(entry, orderIndex, contentOverride = null) {
     blockType === "handout"
       ? extractRoll20HandoutDescription(message, formattedContent, replacedContent)
       : htmlToText(htmlContent);
-  const avatar = blockType === "handout" ? "" : makeAvatarHtml(message);
   const byline = speakerName ? `<span class="by">${escapeHtml(speakerName)}:</span> ` : "";
   const rawHtml =
     blockType === "handout"
       ? makeHandoutRawHtml(textContent, extractHandoutStyleFromHtml(replacedContent))
       : type === "desc"
-        ? `<div class="message ${escapeHtml(type)}" data-messageid="${escapeHtml(id)}">${avatar}${byline}<div class="content">${htmlContent}</div></div>`
-        : `<div class="message ${escapeHtml(type)}" data-messageid="${escapeHtml(id)}">${avatar}${byline}<span class="content">${htmlContent}</span></div>`;
+        ? `<div class="message ${escapeHtml(type)}" data-messageid="${escapeHtml(id)}">${byline}<div class="content">${htmlContent}</div></div>`
+        : `<div class="message ${escapeHtml(type)}" data-messageid="${escapeHtml(id)}">${byline}<span class="content">${htmlContent}</span></div>`;
 
   return {
     orderIndex,

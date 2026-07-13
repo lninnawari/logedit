@@ -27,17 +27,17 @@ test("marks image blocks as handouts", () => {
   assert.equal(blocks[0].rawHtml.includes("<img"), false);
 });
 
-test("keeps character images in message blocks with text", () => {
+test("removes character avatar images from message blocks with text", () => {
   const blocks = parseHtmlToBlocks(`
     <div class="message"><img class="avatar" src="pc.png" alt=""><span class="speaker">GM:</span><span>어서 와</span></div>
   `);
 
   assert.equal(blocks.length, 1);
   assert.equal(blocks[0].blockType, "dialogue");
-  assert.equal(blocks[0].rawHtml.includes("<img"), true);
+  assert.equal(blocks[0].rawHtml.includes("<img"), false);
 });
 
-test("keeps Roll20 aria-hidden avatar images in rendered HTML", () => {
+test("removes Roll20 aria-hidden avatar images in rendered HTML", () => {
   const blocks = parseHtmlToBlocks(`
     <div class="message general" data-messageid="g1">
       <div class="avatar" aria-hidden="true"><img src="https://example.com/avatar.png"></div>
@@ -48,8 +48,8 @@ test("keeps Roll20 aria-hidden avatar images in rendered HTML", () => {
   assert.equal(blocks.length, 1);
   assert.equal(blocks[0].blockType, "dialogue");
   assert.equal(blocks[0].speakerName, "GM");
-  assert.match(blocks[0].rawHtml, /class="avatar"/);
-  assert.match(blocks[0].rawHtml, /avatar\.png/);
+  assert.doesNotMatch(blocks[0].rawHtml, /class="avatar"/);
+  assert.doesNotMatch(blocks[0].rawHtml, /avatar\.png/);
 });
 
 test("does not treat first strong text as a speaker in rendered Roll20 HTML", () => {
@@ -77,7 +77,7 @@ test("keeps rendered Roll20 roll tables inside the speaker message", () => {
   assert.equal(blocks.length, 1);
   assert.equal(blocks[0].blockType, "dialogue");
   assert.equal(blocks[0].speakerName, "Arcturus");
-  assert.match(blocks[0].rawHtml, /class="avatar"/);
+  assert.doesNotMatch(blocks[0].rawHtml, /class="avatar"/);
   assert.match(blocks[0].rawHtml, /sheet-rolltemplate-coc-1/);
 });
 
@@ -161,7 +161,7 @@ test("parses Roll20 msgdata and skips hidden messages", () => {
   assert.equal(blocks[1].textContent, "듣기 57");
 });
 
-test("renders Roll20 avatars in editable message HTML", () => {
+test("does not render Roll20 avatars in editable message HTML", () => {
   const msgdata = Buffer.from(
     JSON.stringify([
       {
@@ -180,11 +180,11 @@ test("renders Roll20 avatars in editable message HTML", () => {
   const blocks = parseHtmlToBlocks(`<script>var msgdata = "${msgdata}";</script>`);
 
   assert.equal(blocks[0].speakerName, "GM");
-  assert.match(blocks[0].rawHtml, /character-avatar/);
-  assert.match(blocks[0].rawHtml, /avatar\.png/);
+  assert.doesNotMatch(blocks[0].rawHtml, /character-avatar/);
+  assert.doesNotMatch(blocks[0].rawHtml, /avatar\.png/);
 });
 
-test("renders nested Roll20 avatar-like image fields", () => {
+test("does not render nested Roll20 avatar-like image fields", () => {
   const msgdata = Buffer.from(
     JSON.stringify([
       {
@@ -204,8 +204,8 @@ test("renders nested Roll20 avatar-like image fields", () => {
 
   const blocks = parseHtmlToBlocks(`<script>var msgdata = "${msgdata}";</script>`);
 
-  assert.match(blocks[0].rawHtml, /character-avatar/);
-  assert.match(blocks[0].rawHtml, /character\.webp/);
+  assert.doesNotMatch(blocks[0].rawHtml, /character-avatar/);
+  assert.doesNotMatch(blocks[0].rawHtml, /character\.webp/);
 });
 
 test("uses markdown image labels for Roll20 desc handout markers", () => {
@@ -427,7 +427,7 @@ test("parses rendered Roll20 HTML before Cocofolia fallback", () => {
   assert.equal(blocks[1].textContent, "<협연: 종언의 꽃> 아네모네 캠페인");
   assert.equal(blocks[2].blockType, "dialogue");
   assert.equal(blocks[2].speakerName, "GM");
-  assert.match(blocks[2].rawHtml, /class="avatar"/);
+  assert.doesNotMatch(blocks[2].rawHtml, /class="avatar"/);
 });
 
 test("uses explicit source type to parse Cocofolia before generic HTML", () => {
