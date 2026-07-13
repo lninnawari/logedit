@@ -29,7 +29,7 @@ const MARKDOWN_IMAGE_LINK_PATTERN = /^\s*(?:\/desc\s*)?\[([^\]]+)]\((https?:\/\/
 const BARE_IMAGE_URL_PATTERN = /^\s*https?:\/\/\S+\.(?:png|jpe?g|gif|webp)(?:\?\S*)?\s*$/i;
 
 function removeHiddenElements($) {
-  $("[hidden], script, style, noscript").remove();
+  $("[hidden], script, style, noscript, .hidden-message").remove();
   $("[aria-hidden='true']").each((_index, element) => {
     if ($(element).hasClass("avatar") || $(element).find("img, picture, video").length > 0) return;
     $(element).remove();
@@ -40,6 +40,9 @@ function removeHiddenElements($) {
       $(element).remove();
     }
   });
+  $("*")
+    .filter((_index, element) => extractText($, element) === "This message has been hidden.")
+    .remove();
 }
 
 function makeHandoutRawHtml(description) {
@@ -160,6 +163,7 @@ function getDirectMessageChildren($, element) {
 
 function expandMixedMessageElements($, elements) {
   return elements.flatMap((element) => {
+    if (hasClass($, element, "message") && $(element).attr("data-messageid")) return [element];
     if (hasClass($, element, "desc")) return [element];
 
     const directChildren = getDirectMessageChildren($, element);

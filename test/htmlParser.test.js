@@ -52,6 +52,37 @@ test("keeps Roll20 aria-hidden avatar images in rendered HTML", () => {
   assert.match(blocks[0].rawHtml, /avatar\.png/);
 });
 
+test("keeps rendered Roll20 roll tables inside the speaker message", () => {
+  const blocks = parseHtmlToBlocks(`
+    <div class="message general you" data-messageid="r1">
+      <div class="avatar" aria-hidden="true"><img src="https://example.com/avatar.png"></div>
+      <span class="by">Arcturus:</span>
+      <div class="sheet-rolltemplate-coc-1"><table><caption>Listen</caption><tbody><tr><td>Result</td><td>45</td></tr></tbody></table></div>
+    </div>
+  `);
+
+  assert.equal(blocks.length, 1);
+  assert.equal(blocks[0].blockType, "dialogue");
+  assert.equal(blocks[0].speakerName, "Arcturus");
+  assert.match(blocks[0].rawHtml, /class="avatar"/);
+  assert.match(blocks[0].rawHtml, /sheet-rolltemplate-coc-1/);
+});
+
+test("removes rendered Roll20 hidden message blocks", () => {
+  const blocks = parseHtmlToBlocks(`
+    <div class="message hidden-message you" data-messageid="h1">
+      <span class="by">Arcturus:</span> This message has been hidden.
+    </div>
+    <div class="message general" data-messageid="g1">
+      <span class="by">GM:</span> visible
+    </div>
+  `);
+
+  assert.equal(blocks.length, 1);
+  assert.equal(blocks[0].speakerName, "GM");
+  assert.equal(blocks[0].textContent.includes("hidden"), false);
+});
+
 test("removes hidden elements before extracting text", () => {
   const blocks = parseHtmlToBlocks(`
     <p><b>GM:</b> 보이는 말 <span hidden>숨김</span></p>

@@ -729,6 +729,9 @@ function prepareEditableMarkup(html, editingTextNodeIndex = null) {
     element.setAttribute("contenteditable", "false");
     element.classList.add("locked-speaker");
   });
+  template.content.querySelectorAll("img").forEach((element) => {
+    element.setAttribute("referrerpolicy", "no-referrer");
+  });
   template.content.querySelectorAll("strong:first-child, b:first-child").forEach((element) => {
     element.setAttribute("contenteditable", "false");
     element.classList.add("locked-speaker");
@@ -780,6 +783,8 @@ function Block({ block, token, settings, onUpdated }) {
     };
 
     editorRef.current.querySelectorAll("img").forEach((image) => {
+      image.referrerPolicy = "no-referrer";
+
       if (!image.getAttribute("src") || (image.complete && image.naturalWidth === 0)) {
         hideBrokenImage(image);
         return;
