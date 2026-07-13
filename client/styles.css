@@ -316,16 +316,6 @@ textarea:focus,
   max-width: 100% !important;
 }
 
-.rendered-html .message.desc {
-  font: inherit;
-}
-
-.rendered-html .message.desc :where(.content, .content > *, > a, > div, > p, > center) {
-  font-family: inherit;
-  font-size: inherit;
-  line-height: inherit;
-}
-
 .rendered-html .message.desc.desc-align-center,
 .rendered-html .message.desc :where([align="center"], center) {
   text-align: center;
@@ -340,7 +330,6 @@ textarea:focus,
 }
 
 .rendered-html .message.desc .desc-inline-part {
-  display: inline !important;
   left: auto !important;
   position: static !important;
   top: auto !important;
@@ -466,8 +455,8 @@ textarea:focus,
   overflow-wrap: anywhere;
 }
 
-.log-block.continuation {
-  margin-left: 30px;
+.log-block.continuation .rendered-html .message.general {
+  padding-left: 75px !important;
 }
 
 .handout-text {
