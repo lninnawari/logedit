@@ -317,7 +317,7 @@ textarea:focus,
 }
 
 .rendered-html .message.general {
-  padding-left: 24px !important;
+  padding-left: 8px !important;
 }
 
 .rendered-html .message.desc.desc-align-center,
@@ -333,7 +333,7 @@ textarea:focus,
   text-align: center !important;
 }
 
-.rendered-html .message.desc .desc-inline-part {
+.rendered-html .message.desc .desc-position-fix {
   left: auto !important;
   position: static !important;
   top: auto !important;
@@ -349,15 +349,15 @@ textarea:focus,
   left: 0 !important;
   margin-right: 0.35em;
   position: static !important;
-  text-align: right;
+  text-align: left;
   vertical-align: top;
   white-space: nowrap;
-  width: 5.8em;
+  width: 4.8em;
 }
 
 .rendered-html .message-text {
   display: inline-block;
-  max-width: calc(100% - 6.4em);
+  max-width: calc(100% - 5.4em);
   vertical-align: top;
 }
 
@@ -437,7 +437,7 @@ textarea:focus,
 }
 
 .log-block.continuation .rendered-html .message.general {
-  padding-left: calc(24px + 6.4em) !important;
+  padding-left: calc(8px + 5.4em) !important;
 }
 
 .handout-text {

@@ -753,7 +753,10 @@ function prepareEditableMarkup(html, editingTextNodeIndex = null) {
       element.style.textAlign = "center";
     }
     element.querySelectorAll(".content > a, .content > span, .content > b, .content > strong, .content > em, .content > i, :scope > a, :scope > span, :scope > b, :scope > strong, :scope > em, :scope > i").forEach((part) => {
-      part.classList.add("desc-inline-part");
+      const style = String(part.getAttribute("style") || "").toLowerCase();
+      if (style.includes("position: absolute") || /width:\s*\d{3,}/.test(style)) {
+        part.classList.add("desc-position-fix");
+      }
     });
   });
   template.content.querySelectorAll("strong:first-child, b:first-child").forEach((element) => {
