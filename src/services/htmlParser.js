@@ -29,7 +29,11 @@ const MARKDOWN_IMAGE_LINK_PATTERN = /^\s*(?:\/desc\s*)?\[([^\]]+)]\((https?:\/\/
 const BARE_IMAGE_URL_PATTERN = /^\s*https?:\/\/\S+\.(?:png|jpe?g|gif|webp)(?:\?\S*)?\s*$/i;
 
 function removeHiddenElements($) {
-  $("[hidden], [aria-hidden='true'], script, style, noscript").remove();
+  $("[hidden], script, style, noscript").remove();
+  $("[aria-hidden='true']").each((_index, element) => {
+    if ($(element).hasClass("avatar") || $(element).find("img, picture, video").length > 0) return;
+    $(element).remove();
+  });
   $("[style]").each((_index, element) => {
     const style = String($(element).attr("style") || "").toLowerCase();
     if (style.includes("display:none") || style.includes("visibility:hidden")) {
@@ -76,6 +80,8 @@ function extractText($, element) {
 }
 
 function extractSpeakerName($, element) {
+  if (hasClass($, element, "desc")) return null;
+
   for (const selector of SPEAKER_SELECTORS) {
     const text = $(element).find(selector).first().text().trim();
     if (text) return stripSpeakerSuffix(text);
@@ -90,8 +96,20 @@ function stripSpeakerSuffix(text) {
   return String(text || "").replace(/[:：]\s*$/, "").trim() || null;
 }
 
+function hasClass($, element, className) {
+  return String($(element).attr("class") || "")
+    .split(/\s+/)
+    .includes(className);
+}
+
+function isRoll20RenderedHtml(source) {
+  if (!/class\s*=\s*["'][^"']*\bmessage\b/i.test(source)) return false;
+  return /data-messageid\s*=/i.test(source) || /class\s*=\s*["'][^"']*\b(desc|general|you|avatar|by)\b/i.test(source);
+}
+
 function detectBlockType($, element) {
   if ($(element).find("img, picture, video").length > 0 && !extractText($, element)) return "handout";
+  if (hasClass($, element, "desc")) return "narration";
   return extractSpeakerName($, element) ? "dialogue" : "narration";
 }
 
@@ -143,6 +161,9 @@ function getDirectMessageChildren($, element) {
 function expandMixedMessageElements($, elements) {
   return elements.flatMap((element) => {
     const directChildren = getDirectMessageChildren($, element);
+    if (directChildren.length > 0 && hasClass($, element, "desc")) {
+      directChildren.forEach((child) => $(child).addClass("desc"));
+    }
     return directChildren.length > 0 ? directChildren : [element];
   });
 }
@@ -209,6 +230,30 @@ function toBlock($, element, orderIndex) {
     originalText: textContent,
     blockType,
   };
+}
+
+function parseGenericHtmlToBlocks(source) {
+  const $ = cheerio.load(source, { decodeEntities: false });
+
+  removeHiddenElements($);
+
+  const elements = findMessageElements($);
+  if (elements.length === 0) {
+    const fallbackText = $("body").text().trim() || $.root().text().trim() || source.trim();
+
+    return [
+      {
+        orderIndex: 0,
+        speakerName: null,
+        rawHtml: source,
+        textContent: fallbackText,
+        originalText: fallbackText,
+        blockType: "narration",
+      },
+    ];
+  }
+
+  return elements.map((element, index) => toBlock($, element, index));
 }
 
 function parseCocofoliaLine(text) {
@@ -608,30 +653,12 @@ function parseHtmlToBlocks(html) {
   const roll20Blocks = parseRoll20Msgdata(source);
   if (roll20Blocks && roll20Blocks.length > 0) return roll20Blocks;
 
+  if (isRoll20RenderedHtml(source)) return parseGenericHtmlToBlocks(source);
+
   const cocofoliaBlocks = parseCocofoliaStatic(source);
   if (cocofoliaBlocks && cocofoliaBlocks.length > 0) return cocofoliaBlocks;
 
-  const $ = cheerio.load(source, { decodeEntities: false });
-
-  removeHiddenElements($);
-
-  const elements = findMessageElements($);
-  if (elements.length === 0) {
-    const fallbackText = $("body").text().trim() || $.root().text().trim() || source.trim();
-
-    return [
-      {
-        orderIndex: 0,
-        speakerName: null,
-        rawHtml: source,
-        textContent: fallbackText,
-        originalText: fallbackText,
-        blockType: "narration",
-      },
-    ];
-  }
-
-  return elements.map((element, index) => toBlock($, element, index));
+  return parseGenericHtmlToBlocks(source);
 }
 
 module.exports = {

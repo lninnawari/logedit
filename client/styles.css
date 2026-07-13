@@ -354,6 +354,24 @@ textarea:focus,
   width: 32px;
 }
 
+.rendered-html .avatar {
+  display: inline-flex !important;
+  height: 32px !important;
+  margin-right: 6px !important;
+  position: static !important;
+  vertical-align: middle !important;
+  width: 32px !important;
+}
+
+.rendered-html .avatar img {
+  border-radius: 4px;
+  height: 32px !important;
+  max-height: 32px !important;
+  max-width: 32px !important;
+  object-fit: cover;
+  width: 32px !important;
+}
+
 .rendered-html .message.desc .content > a {
   max-width: 100%;
   overflow-wrap: anywhere;

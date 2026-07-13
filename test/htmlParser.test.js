@@ -37,6 +37,21 @@ test("keeps character images in message blocks with text", () => {
   assert.equal(blocks[0].rawHtml.includes("<img"), true);
 });
 
+test("keeps Roll20 aria-hidden avatar images in rendered HTML", () => {
+  const blocks = parseHtmlToBlocks(`
+    <div class="message general" data-messageid="g1">
+      <div class="avatar" aria-hidden="true"><img src="https://example.com/avatar.png"></div>
+      <span class="by">GM:</span> 어서 와
+    </div>
+  `);
+
+  assert.equal(blocks.length, 1);
+  assert.equal(blocks[0].blockType, "dialogue");
+  assert.equal(blocks[0].speakerName, "GM");
+  assert.match(blocks[0].rawHtml, /class="avatar"/);
+  assert.match(blocks[0].rawHtml, /avatar\.png/);
+});
+
 test("removes hidden elements before extracting text", () => {
   const blocks = parseHtmlToBlocks(`
     <p><b>GM:</b> 보이는 말 <span hidden>숨김</span></p>
@@ -301,6 +316,34 @@ test("keeps Roll20 desc anchor headings visible as editable blocks", () => {
   assert.equal(blocks[0].textContent, "─────── CHAPTER 0 ───────");
   assert.equal(blocks[1].textContent, "도입");
   assert.match(blocks[0].rawHtml, /CHAPTER 0/);
+});
+
+test("parses rendered Roll20 HTML before Cocofolia fallback", () => {
+  const blocks = parseHtmlToBlocks(`
+    <body>
+      <div class="message desc" data-messageid="d1">
+        <a href="https://example.com/title.png"><img src="https://example.com/title.png" alt="타이틀"></a>
+      </div>
+      <div class="message desc" data-messageid="d2">
+        <div class="spacer"></div>
+        <a style="display:block">&lt;협연: 종언의 꽃&gt; 아네모네 캠페인</a>
+      </div>
+      <div class="message general" data-messageid="g1">
+        <div class="avatar"><img src="https://example.com/gm.png"></div>
+        <span class="by">GM:</span> 본문
+      </div>
+    </body>
+  `);
+
+  assert.equal(blocks.length, 3);
+  assert.equal(blocks[0].blockType, "handout");
+  assert.equal(blocks[0].textContent, "타이틀");
+  assert.equal(blocks[1].blockType, "narration");
+  assert.equal(blocks[1].speakerName, null);
+  assert.equal(blocks[1].textContent, "<협연: 종언의 꽃> 아네모네 캠페인");
+  assert.equal(blocks[2].blockType, "dialogue");
+  assert.equal(blocks[2].speakerName, "GM");
+  assert.match(blocks[2].rawHtml, /class="avatar"/);
 });
 
 test("splits nested styled Roll20 desc children instead of dropping them", () => {
