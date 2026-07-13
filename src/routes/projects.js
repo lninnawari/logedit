@@ -177,43 +177,6 @@ router.patch(
   })
 );
 
-router.post(
-  "/:id/reparse",
-  asyncHandler(async (req, res) => {
-    const project = await prisma.project.findUnique({
-      where: { id: req.params.id },
-      select: {
-        id: true,
-        originalHtml: true,
-      },
-    });
-
-    if (!project) return res.status(404).json({ error: "Project not found." });
-
-    const blocks = parseHtmlToBlocks(project.originalHtml);
-
-    await prisma.$transaction([
-      prisma.messageBlock.deleteMany({
-        where: { projectId: project.id },
-      }),
-      prisma.project.update({
-        where: { id: project.id },
-        data: {
-          status: "editing",
-          blocks: {
-            create: blocks,
-          },
-        },
-      }),
-    ]);
-
-    res.json({
-      projectId: project.id,
-      blockCount: blocks.length,
-    });
-  })
-);
-
 router.patch(
   "/:id/share-link/password",
   asyncHandler(async (req, res) => {
