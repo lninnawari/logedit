@@ -721,10 +721,11 @@ function stripSpeakerPrefix(text, speakerName) {
   return textValue.slice(speaker.length).replace(/^\s*[:：>＞]?\s*/, "").trimStart();
 }
 
-function lockSpeakerMarkup(html) {
+function prepareEditableMarkup(html, editingTextNodeIndex = null) {
   const template = document.createElement("template");
   template.innerHTML = html;
-  template.content.querySelectorAll(".by, .speaker, .author, .username, .name, .message-sender, .byline").forEach((element) => {
+  const lockedSelectors = ".by, .speaker, .author, .username, .name, .message-sender, .byline";
+  template.content.querySelectorAll(lockedSelectors).forEach((element) => {
     element.setAttribute("contenteditable", "false");
     element.classList.add("locked-speaker");
   });
@@ -732,31 +733,80 @@ function lockSpeakerMarkup(html) {
     element.setAttribute("contenteditable", "false");
     element.classList.add("locked-speaker");
   });
+  let textNodeIndex = 0;
+  const walker = document.createTreeWalker(template.content, NodeFilter.SHOW_TEXT);
+  const textNodes = [];
+  while (walker.nextNode()) {
+    const node = walker.currentNode;
+    if (String(node.data || "").trim()) textNodes.push(node);
+  }
+
+  textNodes.forEach((node) => {
+    const parent = node.parentElement;
+    const index = textNodeIndex;
+    textNodeIndex += 1;
+
+    if (!parent || parent.closest(lockedSelectors)) return;
+
+    const marker = document.createElement("span");
+    marker.className = "editable-part";
+    marker.dataset.textNodeIndex = String(index);
+    marker.setAttribute("contenteditable", editingTextNodeIndex === index ? "true" : "false");
+    if (editingTextNodeIndex === index) marker.classList.add("editing-part");
+    marker.textContent = node.data;
+    node.replaceWith(marker);
+  });
+
   return template.innerHTML;
 }
 
 function Block({ block, token, settings, onUpdated }) {
   const [isEditing, setIsEditing] = useState(false);
+  const [editingTextNodeIndex, setEditingTextNodeIndex] = useState(null);
   const [status, setStatus] = useState("idle");
   const editorRef = useRef(null);
-  const cleanHtml = useMemo(() => lockSpeakerMarkup(DOMPurify.sanitize(block.rawHtml)), [block.rawHtml]);
+  const cleanHtml = useMemo(
+    () => prepareEditableMarkup(DOMPurify.sanitize(block.rawHtml), editingTextNodeIndex),
+    [block.rawHtml, editingTextNodeIndex]
+  );
+
+  useEffect(() => {
+    if (!editorRef.current) return;
+
+    editorRef.current.querySelectorAll("img").forEach((image) => {
+      image.addEventListener(
+        "error",
+        () => {
+          const avatar = image.closest(".avatar, .character-avatar");
+          if (avatar) avatar.style.display = "none";
+          else image.style.display = "none";
+        },
+        { once: true }
+      );
+    });
+  }, [cleanHtml]);
 
   useEffect(() => {
     if (!isEditing || !editorRef.current) return;
-    editorRef.current.focus();
+    const target =
+      editingTextNodeIndex == null ? editorRef.current : editorRef.current.querySelector(`[data-text-node-index="${editingTextNodeIndex}"]`);
+    if (!target) return;
+
+    target.focus();
 
     const range = document.createRange();
-    range.selectNodeContents(editorRef.current);
+    range.selectNodeContents(target);
     range.collapse(false);
     const selection = window.getSelection();
     selection.removeAllRanges();
     selection.addRange(range);
-  }, [isEditing]);
+  }, [isEditing, editingTextNodeIndex, cleanHtml]);
 
-  async function save(nextText) {
+  async function save(nextText, textNodeIndex = null) {
     const normalizedText = stripSpeakerPrefix(nextText, block.speakerName);
-    if (!normalizedText || normalizedText === editableText(block)) {
+    if (!normalizedText || (textNodeIndex == null && normalizedText === editableText(block))) {
       setIsEditing(false);
+      setEditingTextNodeIndex(null);
       return;
     }
 
@@ -765,10 +815,11 @@ function Block({ block, token, settings, onUpdated }) {
       const updated = await api(`/api/share/${block.projectId}/blocks/${block.id}`, {
         method: "PATCH",
         headers: { Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ textContent: normalizedText }),
+        body: JSON.stringify({ textContent: normalizedText, ...(textNodeIndex == null ? {} : { textNodeIndex }) }),
       });
       onUpdated(updated);
       setIsEditing(false);
+      setEditingTextNodeIndex(null);
       setStatus("saved");
       window.setTimeout(() => setStatus("idle"), 1200);
     } catch (_err) {
@@ -777,13 +828,15 @@ function Block({ block, token, settings, onUpdated }) {
   }
 
   function finishEditing(event) {
-    save(event.currentTarget.innerText);
+    const target = editingTextNodeIndex == null ? event.currentTarget : event.target.closest?.(".editable-part") || event.currentTarget;
+    save(target.innerText, editingTextNodeIndex);
   }
 
   function handleKeyDown(event) {
     if (event.key === "Escape") {
       event.preventDefault();
       setIsEditing(false);
+      setEditingTextNodeIndex(null);
       return;
     }
 
@@ -793,10 +846,26 @@ function Block({ block, token, settings, onUpdated }) {
     }
   }
 
+  function startEditing(event) {
+    const editablePart = event.target.closest?.(".editable-part");
+    if (editablePart && editorRef.current?.contains(editablePart)) {
+      event.preventDefault();
+      event.stopPropagation();
+      setEditingTextNodeIndex(Number(editablePart.dataset.textNodeIndex));
+      setIsEditing(true);
+      return;
+    }
+
+    if (block.blockType === "handout") {
+      setEditingTextNodeIndex(null);
+      setIsEditing(true);
+    }
+  }
+
   return (
     <article
       className={`log-block ${block.isEdited ? "edited" : ""} ${isEditing ? "editing" : ""}`}
-      onDoubleClick={() => setIsEditing(true)}
+      onDoubleClick={startEditing}
       title={isEditing ? "수정 후 바깥을 클릭하면 저장됩니다." : "더블클릭해서 수정"}
     >
       <div className="block-body">
@@ -815,8 +884,6 @@ function Block({ block, token, settings, onUpdated }) {
           <div
             ref={editorRef}
             className="rendered-html editable-surface"
-            contentEditable={isEditing}
-            suppressContentEditableWarning
             onBlur={finishEditing}
             onKeyDown={handleKeyDown}
             dangerouslySetInnerHTML={{ __html: cleanHtml }}

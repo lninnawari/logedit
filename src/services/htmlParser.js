@@ -160,10 +160,9 @@ function getDirectMessageChildren($, element) {
 
 function expandMixedMessageElements($, elements) {
   return elements.flatMap((element) => {
+    if (hasClass($, element, "desc")) return [element];
+
     const directChildren = getDirectMessageChildren($, element);
-    if (directChildren.length > 0 && hasClass($, element, "desc")) {
-      directChildren.forEach((child) => $(child).addClass("desc"));
-    }
     return directChildren.length > 0 ? directChildren : [element];
   });
 }
@@ -622,9 +621,9 @@ function shouldPreserveRoll20Desc(content) {
 function roll20EntryToBlocks(entry) {
   const [_id, message] = entry;
   const replacedContent = replaceInlineRolls(roll20MessageContent(message), message.inlinerolls);
-  const parts = message.type === "desc" && !shouldPreserveRoll20Desc(replacedContent) ? splitHtmlMessageParts(replacedContent) : null;
-  if (!parts) return [roll20MessageToBlock(entry, 0)];
-  return parts.map((part) => roll20MessageToBlock(entry, 0, part));
+  if (message.type === "desc") return [roll20MessageToBlock(entry, 0)];
+
+  return [roll20MessageToBlock(entry, 0, replacedContent)];
 }
 
 function parseRoll20Msgdata(source) {

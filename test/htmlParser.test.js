@@ -303,7 +303,7 @@ test("splits mixed styled child messages into separate blocks", () => {
   assert.equal(blocks[1].textContent, "탐사자: 대답합니다");
 });
 
-test("keeps Roll20 desc anchor headings visible as editable blocks", () => {
+test("keeps Roll20 desc anchor headings visible in one editable block", () => {
   const blocks = parseHtmlToBlocks(`
     <div class="message desc" data-messageid="-Ov3Vfd-L7PQNxVck9E0">
       <div class="spacer"></div>
@@ -312,10 +312,10 @@ test("keeps Roll20 desc anchor headings visible as editable blocks", () => {
     </div>
   `);
 
-  assert.equal(blocks.length, 2);
-  assert.equal(blocks[0].textContent, "─────── CHAPTER 0 ───────");
-  assert.equal(blocks[1].textContent, "도입");
+  assert.equal(blocks.length, 1);
+  assert.match(blocks[0].textContent, /CHAPTER 0/);
   assert.match(blocks[0].rawHtml, /CHAPTER 0/);
+  assert.match(blocks[0].rawHtml, /text-align: center/);
 });
 
 test("parses rendered Roll20 HTML before Cocofolia fallback", () => {
@@ -362,7 +362,7 @@ test("uses explicit source type to parse Cocofolia before generic HTML", () => {
   assert.equal(blocks[1].textContent, "들어갑니다.");
 });
 
-test("splits nested styled Roll20 desc children instead of dropping them", () => {
+test("keeps nested styled Roll20 desc children together instead of dropping them", () => {
   const msgdata = Buffer.from(
     JSON.stringify([
       {
@@ -380,9 +380,9 @@ test("splits nested styled Roll20 desc children instead of dropping them", () =>
 
   const blocks = parseHtmlToBlocks(`<script>var msgdata = "${msgdata}";</script>`);
 
-  assert.equal(blocks.length, 2);
-  assert.equal(blocks[0].textContent, "─────── CHAPTER 0 ───────");
-  assert.equal(blocks[1].textContent, "도입");
+  assert.equal(blocks.length, 1);
+  assert.match(blocks[0].textContent, /CHAPTER 0/);
+  assert.match(blocks[0].rawHtml, /display:block/);
 });
 
 test("keeps a single nested styled Roll20 desc part visible", () => {
@@ -407,7 +407,7 @@ test("keeps a single nested styled Roll20 desc part visible", () => {
   assert.match(blocks[0].rawHtml, /display:block/);
 });
 
-test("classifies mixed Roll20 desc parts independently from image links", () => {
+test("keeps mixed Roll20 desc text and image labels in one styled block", () => {
   const msgdata = Buffer.from(
     JSON.stringify([
       {
@@ -424,11 +424,9 @@ test("classifies mixed Roll20 desc parts independently from image links", () => 
 
   const blocks = parseHtmlToBlocks(`<script>var msgdata = "${msgdata}";</script>`);
 
-  assert.equal(blocks.length, 2);
-  assert.equal(blocks[0].blockType, "narration");
-  assert.equal(blocks[0].textContent, "장면 시작");
-  assert.equal(blocks[1].blockType, "handout");
-  assert.equal(blocks[1].textContent, "이미지");
+  assert.equal(blocks.length, 1);
+  assert.match(blocks[0].textContent, /map\.png/);
+  assert.match(blocks[0].rawHtml, /map\.png/);
 });
 
 test("preserves styled Roll20 desc macro tables", () => {

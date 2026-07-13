@@ -7,7 +7,7 @@ const { config } = require("../config");
 const { prisma } = require("../prisma");
 const { asyncHandler } = require("../middleware/asyncHandler");
 const { requireShareToken } = require("../middleware/shareAuth");
-const { replaceTextPreservingMarkup } = require("../services/htmlEditor");
+const { replaceTextNodeAtIndexPreservingMarkup, replaceTextPreservingMarkup, textFromHtml } = require("../services/htmlEditor");
 
 const router = Router();
 
@@ -17,6 +17,7 @@ const verifySchema = z.object({
 
 const updateBlockSchema = z.object({
   textContent: z.string(),
+  textNodeIndex: z.number().int().min(0).optional(),
 });
 
 router.post(
@@ -75,12 +76,16 @@ router.patch(
 
     if (!block) return res.status(404).json({ error: "Block not found." });
 
-    const rawHtml = replaceTextPreservingMarkup(block.rawHtml, input.textContent);
+    const rawHtml =
+      input.textNodeIndex == null
+        ? replaceTextPreservingMarkup(block.rawHtml, input.textContent)
+        : replaceTextNodeAtIndexPreservingMarkup(block.rawHtml, input.textNodeIndex, input.textContent);
+    const textContent = input.textNodeIndex == null ? input.textContent : textFromHtml(rawHtml);
     const updated = await prisma.messageBlock.update({
       where: { id: block.id },
       data: {
         rawHtml,
-        textContent: input.textContent,
+        textContent,
         isEdited: true,
       },
     });
