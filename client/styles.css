@@ -268,6 +268,26 @@ textarea:focus,
   display: block;
 }
 
+.editor-actions-row,
+.form-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.editor-actions-row {
+  margin: 0 0 10px;
+}
+
+.editor-actions-row button,
+.form-actions button,
+.trash-item button {
+  align-items: center;
+  display: inline-flex;
+  gap: 6px;
+}
+
 .log-block {
   border-left: 3px solid transparent;
   padding: 2px 0;
@@ -289,6 +309,83 @@ textarea:focus,
 
 .log-block.edited {
   border-left-color: #5aa67f;
+}
+
+.block-quick-actions {
+  display: none;
+  gap: 4px;
+  position: absolute;
+  right: 4px;
+  top: 2px;
+  z-index: 1;
+}
+
+.log-block:hover .block-quick-actions {
+  display: flex;
+}
+
+.icon-button.danger {
+  color: #9f3c3c;
+}
+
+.add-block-form {
+  background: #f6faf8;
+  border: 1px solid #dce7e1;
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+  margin: 8px 0;
+  padding: 10px;
+}
+
+.add-block-form input,
+.add-block-form textarea {
+  min-height: 36px;
+}
+
+.segmented-control {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.segmented-control button.active {
+  background: #2c6d52;
+  color: #fff;
+}
+
+.trash-panel {
+  background: #fffaf0;
+  border: 1px solid #ead7ad;
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 10px;
+}
+
+.trash-panel h2 {
+  font-size: 15px;
+  margin: 0;
+}
+
+.trash-panel p {
+  color: #66746f;
+  margin: 0;
+}
+
+.trash-item {
+  align-items: center;
+  border-top: 1px solid #ead7ad;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding-top: 8px;
+}
+
+.trash-item span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .block-meta,
@@ -487,7 +584,7 @@ textarea:focus,
   gap: 4px;
   min-height: 0;
   position: absolute;
-  right: 4px;
+  right: 68px;
   top: 2px;
 }
 

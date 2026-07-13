@@ -1,7 +1,24 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import DOMPurify from "dompurify";
-import { Check, Copy, Download, Eye, EyeOff, KeyRound, Loader2, LogOut, RefreshCw, Save, Send, Trash2, Upload, X } from "lucide-react";
+import {
+  Check,
+  Copy,
+  Download,
+  Eye,
+  EyeOff,
+  KeyRound,
+  Loader2,
+  LogOut,
+  Plus,
+  RefreshCw,
+  RotateCcw,
+  Save,
+  Send,
+  Trash2,
+  Upload,
+  X,
+} from "lucide-react";
 
 import "./styles.css";
 
@@ -839,7 +856,56 @@ function prepareEditableMarkup(html, editingTextNodeIndex = null, continuationSp
   return template.innerHTML;
 }
 
-function Block({ block, token, settings, onUpdated, continuationSpeakerName = "" }) {
+function AddBlockForm({ onSubmit, onCancel }) {
+  const [blockType, setBlockType] = useState("dialogue");
+  const [speakerName, setSpeakerName] = useState("");
+  const [textContent, setTextContent] = useState("");
+  const [state, setState] = useState("idle");
+
+  async function submit(event) {
+    event.preventDefault();
+    setState("saving");
+    try {
+      await onSubmit({
+        blockType,
+        speakerName: blockType === "dialogue" ? speakerName : null,
+        textContent,
+      });
+      setState("idle");
+    } catch (_error) {
+      setState("error");
+    }
+  }
+
+  return (
+    <form className="add-block-form" onSubmit={submit}>
+      <div className="segmented-control">
+        <button type="button" className={blockType === "dialogue" ? "active" : ""} onClick={() => setBlockType("dialogue")}>
+          대사
+        </button>
+        <button type="button" className={blockType === "narration" ? "active" : ""} onClick={() => setBlockType("narration")}>
+          지문
+        </button>
+      </div>
+      {blockType === "dialogue" ? (
+        <input value={speakerName} onChange={(event) => setSpeakerName(event.target.value)} placeholder="화자명" required />
+      ) : null}
+      <textarea value={textContent} onChange={(event) => setTextContent(event.target.value)} placeholder="추가할 텍스트" required />
+      <div className="form-actions">
+        <button type="submit" disabled={state === "saving"}>
+          {state === "saving" ? <Loader2 className="spin" size={14} /> : <Plus size={14} />}
+          추가
+        </button>
+        <button type="button" className="secondary" onClick={onCancel}>
+          취소
+        </button>
+        {state === "error" ? <span className="error-text">저장 실패</span> : null}
+      </div>
+    </form>
+  );
+}
+
+function Block({ block, token, settings, onUpdated, onAddAfter, onDeleted, continuationSpeakerName = "" }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editingTextNodeIndex, setEditingTextNodeIndex] = useState(null);
   const [status, setStatus] = useState("idle");
@@ -952,6 +1018,30 @@ function Block({ block, token, settings, onUpdated, continuationSpeakerName = ""
       onDoubleClick={startEditing}
       title={isEditing ? "수정 후 바깥을 클릭하면 저장됩니다." : "더블클릭해서 수정"}
     >
+      <div className="block-quick-actions">
+        <button
+          type="button"
+          className="icon-button"
+          onClick={(event) => {
+            event.stopPropagation();
+            onAddAfter(block.id);
+          }}
+          title="아래에 블록 추가"
+        >
+          <Plus size={14} />
+        </button>
+        <button
+          type="button"
+          className="icon-button danger"
+          onClick={(event) => {
+            event.stopPropagation();
+            onDeleted(block.id);
+          }}
+          title="삭제"
+        >
+          <Trash2 size={14} />
+        </button>
+      </div>
       <div className="block-body">
         {block.blockType === "handout" ? (
           <div
@@ -987,6 +1077,9 @@ function Block({ block, token, settings, onUpdated, continuationSpeakerName = ""
 function Editor({ projectId, token }) {
   const [blocks, setBlocks] = useState([]);
   const [settings, setSettings] = useState(null);
+  const [addAfterBlockId, setAddAfterBlockId] = useState(undefined);
+  const [trashBlocks, setTrashBlocks] = useState([]);
+  const [trashOpen, setTrashOpen] = useState(false);
   const [state, setState] = useState("loading");
   const [error, setError] = useState("");
 
@@ -1012,6 +1105,50 @@ function Editor({ projectId, token }) {
 
   function updateBlock(updated) {
     setBlocks((current) => current.map((block) => (block.id === updated.id ? updated : block)));
+  }
+
+  function sortBlocks(nextBlocks) {
+    return [...nextBlocks].sort((a, b) => a.orderIndex - b.orderIndex);
+  }
+
+  async function createBlock(afterBlockId, input) {
+    const created = await api(`/api/share/${projectId}/blocks`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ afterBlockId, ...input }),
+    });
+    setBlocks((current) => sortBlocks([...current, created]));
+    setAddAfterBlockId(undefined);
+  }
+
+  async function deleteBlock(blockId) {
+    await api(`/api/share/${projectId}/blocks/${blockId}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    setBlocks((current) => current.filter((block) => block.id !== blockId));
+    if (trashOpen) loadTrash();
+  }
+
+  async function loadTrash() {
+    const data = await api(`/api/share/${projectId}/trash`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    setTrashBlocks(data.blocks);
+  }
+
+  async function toggleTrash() {
+    if (!trashOpen) await loadTrash();
+    setTrashOpen((current) => !current);
+  }
+
+  async function restoreBlock(blockId) {
+    const restored = await api(`/api/share/${projectId}/blocks/${blockId}/restore`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    setTrashBlocks((current) => current.filter((block) => block.id !== blockId));
+    setBlocks((current) => sortBlocks([...current, restored]));
   }
 
   function isContinuationBlock(block, previousBlock) {
@@ -1074,15 +1211,49 @@ function Editor({ projectId, token }) {
       {state === "error" ? <div className="center-state error-text">{error}</div> : null}
       {state === "ready" ? (
         <section className="log-list">
+          <div className="editor-actions-row">
+            <button type="button" onClick={() => setAddAfterBlockId(null)}>
+              <Plus size={14} />
+              맨 앞에 추가
+            </button>
+            <button type="button" className="secondary" onClick={toggleTrash}>
+              <Trash2 size={14} />
+              휴지통
+            </button>
+          </div>
+          {trashOpen ? (
+            <aside className="trash-panel">
+              <h2>휴지통</h2>
+              {trashBlocks.length === 0 ? <p>삭제된 블록이 없습니다.</p> : null}
+              {trashBlocks.map((block) => (
+                <div className="trash-item" key={block.id}>
+                  <span>{block.textContent}</span>
+                  <button type="button" onClick={() => restoreBlock(block.id)}>
+                    <RotateCcw size={14} />
+                    복구
+                  </button>
+                </div>
+              ))}
+            </aside>
+          ) : null}
+          {addAfterBlockId === null ? (
+            <AddBlockForm onSubmit={(input) => createBlock(null, input)} onCancel={() => setAddAfterBlockId(undefined)} />
+          ) : null}
           {blocks.map((block, index) => (
-            <Block
-              key={block.id}
-              block={block}
-              token={token}
-              settings={settings}
-              onUpdated={updateBlock}
-              continuationSpeakerName={continuationSpeakerAt(block, index)}
-            />
+            <React.Fragment key={block.id}>
+              <Block
+                block={block}
+                token={token}
+                settings={settings}
+                onUpdated={updateBlock}
+                onAddAfter={setAddAfterBlockId}
+                onDeleted={deleteBlock}
+                continuationSpeakerName={continuationSpeakerAt(block, index)}
+              />
+              {addAfterBlockId === block.id ? (
+                <AddBlockForm onSubmit={(input) => createBlock(block.id, input)} onCancel={() => setAddAfterBlockId(undefined)} />
+              ) : null}
+            </React.Fragment>
           ))}
         </section>
       ) : null}

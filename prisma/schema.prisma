@@ -50,7 +50,7 @@ model MessageBlock {
   project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   // 로그 내 순서. 0부터 시작. 이 값 기준으로 정렬해서 화면에 표시하고 TXT로 출력.
-  orderIndex Int
+  orderIndex Float
 
   // 화자명. 시스템 메시지나 지문에는 없을 수 있음 (null 허용)
   speakerName String?
@@ -69,6 +69,9 @@ model MessageBlock {
 
   // 참여자가 한 번이라도 수정했는지 여부. 검수 시 "뭘 고쳤는지" 필터링 용도.
   isEdited Boolean @default(false)
+  isDeleted Boolean @default(false)
+  deletedAt DateTime?
+  isAdded   Boolean @default(false)
 
   updatedAt DateTime @updatedAt
 

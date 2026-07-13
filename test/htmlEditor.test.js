@@ -2,6 +2,7 @@ const assert = require("node:assert/strict");
 const test = require("node:test");
 
 const {
+  buildBlockFromTemplate,
   replaceTextNodeAtIndexPreservingMarkup,
   replaceTextPreservingMarkup,
   textFromHtml,
@@ -14,6 +15,29 @@ test("replaces text while preserving wrapper markup", () => {
   assert.match(nextHtml, /class="message"/);
   assert.match(nextHtml, /style="color:red"/);
   assert.match(nextHtml, /<span>수정된 말<\/span>/);
+});
+
+test("builds a dialogue block from a styled template without copying avatars", () => {
+  const rawHtml =
+    '<div class="message general" style="color:#333"><div class="avatar"><img src="avatar.png"></div><span class="by">GM:</span><span class="content">old</span></div>';
+  const nextHtml = buildBlockFromTemplate("dialogue", rawHtml, {
+    speakerName: "PC",
+    textContent: "<hello>",
+  });
+
+  assert.match(nextHtml, /style="color:#333"/);
+  assert.match(nextHtml, /<span class="by">PC:<\/span>/);
+  assert.match(nextHtml, /&lt;hello&gt;/);
+  assert.doesNotMatch(nextHtml, /avatar\.png/);
+});
+
+test("builds a fallback narration block", () => {
+  const nextHtml = buildBlockFromTemplate("narration", "", {
+    textContent: "scene start",
+  });
+
+  assert.match(nextHtml, /message desc/);
+  assert.match(nextHtml, /scene start/);
 });
 
 test("replaces one text node while preserving neighboring styled text", () => {

@@ -60,7 +60,66 @@ function replaceTextNodeAtIndexPreservingMarkup(rawHtml, textNodeIndex, nextText
   return bodyHtml == null ? $.root().html() : bodyHtml;
 }
 
+const SPEAKER_SELECTOR = ".by, .speaker, .author, .username, .name, .message-sender, .byline";
+
+const FALLBACK_TEMPLATES = {
+  dialogue: '<div class="message general"><span class="by"></span><span class="content"></span></div>',
+  narration: '<div class="message desc"><span class="content"></span></div>',
+};
+
+function serialize($) {
+  const bodyHtml = $("body").html();
+  return bodyHtml == null ? $.root().html() : bodyHtml;
+}
+
+function buildBlockFromTemplate(blockType, templateRawHtml, { speakerName = "", textContent = "" } = {}) {
+  const type = blockType === "dialogue" ? "dialogue" : "narration";
+  const $ = cheerio.load(templateRawHtml || FALLBACK_TEMPLATES[type], { decodeEntities: false });
+
+  $("img, picture, video, .avatar, .character-avatar, .tstamp, time, .timestamp").remove();
+
+  if (type === "dialogue") {
+    const speaker = String(speakerName || "").trim() || "Speaker";
+    const speakerElement = $(SPEAKER_SELECTOR).first();
+    if (speakerElement.length) {
+      speakerElement.text(`${speaker}:`);
+    } else {
+      const root = $("body").children().first().length ? $("body").children().first() : $.root().children().first();
+      root.prepend(`<span class="by"></span> `);
+      root.find(".by").first().text(`${speaker}:`);
+    }
+
+    const speakerNode = $(SPEAKER_SELECTOR).first().get(0);
+    const textNodes = collectTextNodes($.root().get(0)).filter((node) => {
+      let current = node.parent;
+      while (current) {
+        if (current === speakerNode) return false;
+        current = current.parent;
+      }
+      return true;
+    });
+
+    if (textNodes.length > 0) {
+      textNodes[textNodes.length - 1].data = textContent;
+    } else {
+      const contentElement = $(".content").first();
+      if (contentElement.length) contentElement.text(textContent);
+      else $("<span class=\"content\"></span>").text(textContent).insertAfter($(SPEAKER_SELECTOR).first());
+    }
+  } else {
+    const textNodes = collectTextNodes($.root().get(0));
+    if (textNodes.length > 0) textNodes[textNodes.length - 1].data = textContent;
+    else {
+      const root = $("body").children().first().length ? $("body").children().first() : $.root().children().first();
+      if (root.length) root.text(textContent);
+    }
+  }
+
+  return serialize($);
+}
+
 module.exports = {
+  buildBlockFromTemplate,
   collectTextNodes,
   replaceTextPreservingMarkup,
   replaceTextNodeAtIndexPreservingMarkup,

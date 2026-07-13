@@ -65,7 +65,7 @@ router.get(
       include: {
         shareLink: { select: { id: true, createdAt: true } },
         correctionSettings: true,
-        _count: { select: { blocks: true } },
+        _count: { select: { blocks: { where: { isDeleted: false } } } },
       },
     });
 
@@ -144,7 +144,7 @@ router.get(
       include: {
         shareLink: { select: { id: true, createdAt: true } },
         correctionSettings: true,
-        _count: { select: { blocks: true } },
+        _count: { select: { blocks: { where: { isDeleted: false } } } },
       },
     });
 
@@ -234,7 +234,7 @@ async function renderCorrectedText(projectId) {
   const project = await prisma.project.findUnique({
     where: { id: projectId },
     include: {
-      blocks: { orderBy: { orderIndex: "asc" } },
+      blocks: { where: { isDeleted: false }, orderBy: { orderIndex: "asc" } },
       correctionSettings: true,
     },
   });
