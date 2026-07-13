@@ -721,7 +721,7 @@ function stripSpeakerPrefix(text, speakerName) {
   return textValue.slice(speaker.length).replace(/^\s*[:：>＞]?\s*/, "").trimStart();
 }
 
-function prepareEditableMarkup(html, editingTextNodeIndex = null) {
+function prepareEditableMarkup(html, editingTextNodeIndex = null, continuationSpeakerName = "") {
   const template = document.createElement("template");
   template.innerHTML = html;
   const lockedSelectors = ".by, .speaker, .author, .username, .name, .message-sender, .byline";
@@ -731,17 +731,35 @@ function prepareEditableMarkup(html, editingTextNodeIndex = null) {
   });
   template.content.querySelectorAll(".message.general").forEach((message) => {
     const speaker = message.querySelector(".by, .speaker, .author, .username, .name, .message-sender, .byline");
-    if (!speaker || speaker.parentElement !== message || message.querySelector(":scope > .message-text")) return;
+    if (message.querySelector(":scope > .message-line")) return;
 
+    const line = document.createElement("span");
+    line.className = "message-line";
     const content = document.createElement("span");
     content.className = "message-text";
-    let node = speaker.nextSibling;
+
+    if (speaker && speaker.parentElement === message) {
+      message.insertBefore(line, speaker);
+      line.appendChild(speaker);
+    } else if (continuationSpeakerName) {
+      const placeholder = document.createElement("span");
+      placeholder.className = "by locked-speaker continuation-speaker";
+      placeholder.setAttribute("contenteditable", "false");
+      placeholder.setAttribute("aria-hidden", "true");
+      placeholder.textContent = `${continuationSpeakerName}:`;
+      message.insertBefore(line, message.firstChild);
+      line.appendChild(placeholder);
+    } else {
+      return;
+    }
+
+    let node = line.nextSibling;
     while (node) {
       const next = node.nextSibling;
       content.appendChild(node);
       node = next;
     }
-    message.appendChild(content);
+    line.appendChild(content);
     message.classList.add("message-with-speaker");
   });
   template.content.querySelectorAll("img").forEach((element) => {
@@ -790,14 +808,14 @@ function prepareEditableMarkup(html, editingTextNodeIndex = null) {
   return template.innerHTML;
 }
 
-function Block({ block, token, settings, onUpdated, isContinuation = false }) {
+function Block({ block, token, settings, onUpdated, continuationSpeakerName = "" }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editingTextNodeIndex, setEditingTextNodeIndex] = useState(null);
   const [status, setStatus] = useState("idle");
   const editorRef = useRef(null);
   const cleanHtml = useMemo(
-    () => prepareEditableMarkup(DOMPurify.sanitize(block.rawHtml), editingTextNodeIndex),
-    [block.rawHtml, editingTextNodeIndex]
+    () => prepareEditableMarkup(DOMPurify.sanitize(block.rawHtml), editingTextNodeIndex, continuationSpeakerName),
+    [block.rawHtml, editingTextNodeIndex, continuationSpeakerName]
   );
 
   useEffect(() => {
@@ -899,7 +917,7 @@ function Block({ block, token, settings, onUpdated, isContinuation = false }) {
 
   return (
     <article
-      className={`log-block ${block.isEdited ? "edited" : ""} ${isEditing ? "editing" : ""} ${isContinuation ? "continuation" : ""}`}
+      className={`log-block ${block.isEdited ? "edited" : ""} ${isEditing ? "editing" : ""} ${continuationSpeakerName ? "continuation" : ""}`}
       onDoubleClick={startEditing}
       title={isEditing ? "수정 후 바깥을 클릭하면 저장됩니다." : "더블클릭해서 수정"}
     >
@@ -997,6 +1015,11 @@ function Editor({ projectId, token }) {
     );
   }
 
+  function continuationSpeakerAt(block, index) {
+    if (block.speakerName) return "";
+    return isContinuationAt(block, index) ? lastSpeakerBefore(index) || "" : "";
+  }
+
   return (
     <main className="editor-shell">
       <header className="topbar">
@@ -1023,7 +1046,7 @@ function Editor({ projectId, token }) {
               token={token}
               settings={settings}
               onUpdated={updateBlock}
-              isContinuation={isContinuationAt(block, index)}
+              continuationSpeakerName={continuationSpeakerAt(block, index)}
             />
           ))}
         </section>
