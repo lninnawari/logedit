@@ -706,9 +706,18 @@ function formatHandoutText(block, settings) {
   return `${settings?.customHandoutIcon || "★"} ${block.textContent || "이미지/핸드아웃 위치"}`;
 }
 
+const EXPLICIT_SPEAKER_MARKUP_PATTERN =
+  /class\s*=\s*["'][^"']*\b(by|speaker|author|username|name|message-sender|byline)\b/i;
+
+function blockSpeakerName(block) {
+  const speaker = String(block?.speakerName || "").trim();
+  if (!speaker) return "";
+  return EXPLICIT_SPEAKER_MARKUP_PATTERN.test(String(block?.rawHtml || "")) ? speaker : "";
+}
+
 function editableText(block) {
   const text = String(block.textContent || "");
-  const speaker = String(block.speakerName || "").trim();
+  const speaker = blockSpeakerName(block);
   if (!speaker || !text.startsWith(speaker)) return text;
 
   return text.slice(speaker.length).replace(/^\s*[:：>＞]?\s*/, "").trimStart();
@@ -743,7 +752,7 @@ function prepareEditableMarkup(html, editingTextNodeIndex = null, continuationSp
       line.appendChild(speaker);
     } else if (continuationSpeakerName) {
       const placeholder = document.createElement("span");
-      placeholder.className = "by locked-speaker continuation-speaker";
+      placeholder.className = "by locked-speaker continuation-speaker synthetic-speaker";
       placeholder.setAttribute("contenteditable", "false");
       placeholder.setAttribute("aria-hidden", "true");
       placeholder.textContent = `${continuationSpeakerName}:`;
@@ -777,10 +786,6 @@ function prepareEditableMarkup(html, editingTextNodeIndex = null, continuationSp
       }
     });
   });
-  template.content.querySelectorAll("strong:first-child, b:first-child").forEach((element) => {
-    element.setAttribute("contenteditable", "false");
-    element.classList.add("locked-speaker");
-  });
   let textNodeIndex = 0;
   const walker = document.createTreeWalker(template.content, NodeFilter.SHOW_TEXT);
   const textNodes = [];
@@ -791,10 +796,12 @@ function prepareEditableMarkup(html, editingTextNodeIndex = null, continuationSp
 
   textNodes.forEach((node) => {
     const parent = node.parentElement;
+    if (!parent || parent.closest(".synthetic-speaker")) return;
+
     const index = textNodeIndex;
     textNodeIndex += 1;
 
-    if (!parent || parent.closest(lockedSelectors)) return;
+    if (parent.closest(lockedSelectors)) return;
 
     const marker = document.createElement("span");
     marker.className = "editable-part";
@@ -856,7 +863,7 @@ function Block({ block, token, settings, onUpdated, continuationSpeakerName = ""
   }, [isEditing, editingTextNodeIndex, cleanHtml]);
 
   async function save(nextText, textNodeIndex = null) {
-    const normalizedText = stripSpeakerPrefix(nextText, block.speakerName);
+    const normalizedText = stripSpeakerPrefix(nextText, blockSpeakerName(block));
     if (!normalizedText || (textNodeIndex == null && normalizedText === editableText(block))) {
       setIsEditing(false);
       setEditingTextNodeIndex(null);
@@ -984,10 +991,12 @@ function Editor({ projectId, token }) {
 
   function isContinuationBlock(block, previousBlock) {
     if (!previousBlock) return false;
-    if (block.speakerName && block.speakerName === previousBlock.speakerName) return true;
+    const speaker = blockSpeakerName(block);
+    const previousSpeaker = blockSpeakerName(previousBlock);
+    if (speaker && speaker === previousSpeaker) return true;
     return (
-      !block.speakerName &&
-      Boolean(previousBlock.speakerName) &&
+      !speaker &&
+      Boolean(previousSpeaker) &&
       block.blockType === "narration" &&
       /class=["'][^"']*\bmessage\b[^"']*\bgeneral\b/i.test(block.rawHtml || "") &&
       !/\bdesc\b/i.test(block.rawHtml || "")
@@ -997,7 +1006,8 @@ function Editor({ projectId, token }) {
   function lastSpeakerBefore(index) {
     for (let i = index - 1; i >= 0; i -= 1) {
       const previous = blocks[i];
-      if (previous?.speakerName) return previous.speakerName;
+      const speaker = blockSpeakerName(previous);
+      if (speaker) return speaker;
       if (previous?.blockType === "handout" || /\bdesc\b/i.test(previous?.rawHtml || "")) return null;
     }
     return null;
@@ -1007,7 +1017,7 @@ function Editor({ projectId, token }) {
     const previousBlock = blocks[index - 1];
     if (isContinuationBlock(block, previousBlock)) return true;
     return (
-      !block.speakerName &&
+      !blockSpeakerName(block) &&
       Boolean(lastSpeakerBefore(index)) &&
       block.blockType === "narration" &&
       /class=["'][^"']*\bmessage\b[^"']*\bgeneral\b/i.test(block.rawHtml || "") &&
@@ -1016,7 +1026,7 @@ function Editor({ projectId, token }) {
   }
 
   function continuationSpeakerAt(block, index) {
-    if (block.speakerName) return "";
+    if (blockSpeakerName(block)) return "";
     return isContinuationAt(block, index) ? lastSpeakerBefore(index) || "" : "";
   }
 

@@ -52,6 +52,19 @@ test("keeps Roll20 aria-hidden avatar images in rendered HTML", () => {
   assert.match(blocks[0].rawHtml, /avatar\.png/);
 });
 
+test("does not treat first strong text as a speaker in rendered Roll20 HTML", () => {
+  const blocks = parseHtmlToBlocks(`
+    <div class="message general" data-messageid="notice">
+      <strong>[Notice text without a speaker]</strong>
+    </div>
+  `);
+
+  assert.equal(blocks.length, 1);
+  assert.equal(blocks[0].blockType, "narration");
+  assert.equal(blocks[0].speakerName, null);
+  assert.equal(blocks[0].textContent, "[Notice text without a speaker]");
+});
+
 test("keeps rendered Roll20 roll tables inside the speaker message", () => {
   const blocks = parseHtmlToBlocks(`
     <div class="message general you" data-messageid="r1">

@@ -17,8 +17,6 @@ const SPEAKER_SELECTORS = [
   ".name",
   ".message-sender",
   ".by",
-  "strong:first-child",
-  "b:first-child",
 ];
 
 const DEFAULT_HANDOUT_DESCRIPTION = "이미지/핸드아웃 위치";

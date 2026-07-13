@@ -1,3 +1,5 @@
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css");
+
 :root {
   color: #1d2428;
   background: #f5f7f6;
@@ -381,10 +383,11 @@ textarea:focus,
 
 .rendered-html :where([class*="rolltemplate"], [class*="sheet-rolltemplate"]) {
   display: inline-block !important;
-  margin-left: 0.35em;
-  max-width: min(100%, 640px);
+  margin-left: 0;
+  max-width: min(100%, 560px);
   overflow: visible;
   vertical-align: top;
+  width: 560px;
 }
 
 .rendered-html :where([class*="rolltemplate"], [class*="sheet-rolltemplate"]) table {
@@ -398,6 +401,15 @@ textarea:focus,
   min-width: 0;
   overflow-wrap: anywhere;
   word-break: break-word;
+}
+
+.rendered-html :where([class*="rolltemplate"], [class*="sheet-rolltemplate"]) :where(td, th):first-child {
+  width: 5.5em !important;
+  white-space: nowrap;
+}
+
+.rendered-html :where([class*="rolltemplate"], [class*="sheet-rolltemplate"]) :where(td, th):last-child {
+  width: auto !important;
 }
 
 .rendered-html pre,
