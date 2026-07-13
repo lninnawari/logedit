@@ -328,8 +328,8 @@ textarea:focus,
   line-height: inherit;
 }
 
+.rendered-html .message.desc.desc-align-center,
 .rendered-html .message.desc :where([align="center"], center) {
-  display: block;
   text-align: center;
 }
 
@@ -338,8 +338,11 @@ textarea:focus,
 }
 
 .rendered-html .message.desc :where([style*="text-align: center"], [style*="text-align:center"]) {
-  display: block;
   text-align: center !important;
+}
+
+.rendered-html .message.desc :where(.content > a, .content > span, .content > b, .content > strong, .content > em, .content > i, > a, > span, > b, > strong, > em, > i) {
+  display: inline !important;
 }
 
 .rendered-html .spacer {

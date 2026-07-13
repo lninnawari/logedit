@@ -732,6 +732,12 @@ function prepareEditableMarkup(html, editingTextNodeIndex = null) {
   template.content.querySelectorAll("img").forEach((element) => {
     element.setAttribute("referrerpolicy", "no-referrer");
   });
+  template.content.querySelectorAll(".message.desc").forEach((element) => {
+    if (element.querySelector('[align="center"], center, [style*="text-align: center"], [style*="text-align:center"]')) {
+      element.classList.add("desc-align-center");
+      element.style.textAlign = "center";
+    }
+  });
   template.content.querySelectorAll("strong:first-child, b:first-child").forEach((element) => {
     element.setAttribute("contenteditable", "false");
     element.classList.add("locked-speaker");
