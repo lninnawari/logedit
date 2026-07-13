@@ -62,7 +62,6 @@ function applyCorrections(blocks, settings) {
   };
 
   let text = blocks
-    .filter((block) => !(safeSettings.removeHiddenMessage && block.isHidden))
     .sort((a, b) => a.orderIndex - b.orderIndex)
     .map((block) => blockToText(block, safeSettings))
     .filter(Boolean)

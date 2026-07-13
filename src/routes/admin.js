@@ -5,6 +5,7 @@ const { z } = require("zod");
 const { prisma } = require("../prisma");
 const { asyncHandler } = require("../middleware/asyncHandler");
 const { requireAdmin, signAdminToken } = require("../middleware/adminAuth");
+const { adminLoginLimiter } = require("../middleware/rateLimiters");
 
 const router = Router();
 
@@ -15,6 +16,7 @@ const loginSchema = z.object({
 
 router.post(
   "/login",
+  adminLoginLimiter,
   asyncHandler(async (req, res) => {
     const input = loginSchema.parse(req.body);
     const admin = await prisma.adminUser.findUnique({

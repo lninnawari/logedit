@@ -7,6 +7,7 @@ const { config } = require("../config");
 const { prisma } = require("../prisma");
 const { asyncHandler } = require("../middleware/asyncHandler");
 const { requireShareToken } = require("../middleware/shareAuth");
+const { shareVerifyLimiter } = require("../middleware/rateLimiters");
 const { replaceTextNodeAtIndexPreservingMarkup, replaceTextPreservingMarkup, textFromHtml } = require("../services/htmlEditor");
 
 const router = Router();
@@ -22,6 +23,7 @@ const updateBlockSchema = z.object({
 
 router.post(
   "/:projectId/verify",
+  shareVerifyLimiter,
   asyncHandler(async (req, res) => {
     const input = verifySchema.parse(req.body);
     const shareLink = await prisma.shareLink.findUnique({

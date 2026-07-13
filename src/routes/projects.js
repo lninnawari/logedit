@@ -1,4 +1,5 @@
 const bcrypt = require("bcrypt");
+const { randomUUID } = require("node:crypto");
 const jwt = require("jsonwebtoken");
 const multer = require("multer");
 const { Router } = require("express");
@@ -185,7 +186,7 @@ router.patch(
     const passwordHash = await bcrypt.hash(input.password, 12);
     const shareLink = await prisma.shareLink.update({
       where: { projectId: req.params.id },
-      data: { passwordHash },
+      data: { id: randomUUID(), passwordHash },
       select: { id: true, projectId: true, createdAt: true },
     });
 
