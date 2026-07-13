@@ -773,16 +773,19 @@ function Block({ block, token, settings, onUpdated }) {
   useEffect(() => {
     if (!editorRef.current) return;
 
+    const hideBrokenImage = (image) => {
+      const avatar = image.closest(".avatar, .character-avatar");
+      if (avatar) avatar.style.display = "none";
+      else image.style.display = "none";
+    };
+
     editorRef.current.querySelectorAll("img").forEach((image) => {
-      image.addEventListener(
-        "error",
-        () => {
-          const avatar = image.closest(".avatar, .character-avatar");
-          if (avatar) avatar.style.display = "none";
-          else image.style.display = "none";
-        },
-        { once: true }
-      );
+      if (!image.getAttribute("src") || (image.complete && image.naturalWidth === 0)) {
+        hideBrokenImage(image);
+        return;
+      }
+
+      image.addEventListener("error", () => hideBrokenImage(image), { once: true });
     });
   }, [cleanHtml]);
 
