@@ -729,6 +729,21 @@ function prepareEditableMarkup(html, editingTextNodeIndex = null) {
     element.setAttribute("contenteditable", "false");
     element.classList.add("locked-speaker");
   });
+  template.content.querySelectorAll(".message.general").forEach((message) => {
+    const speaker = message.querySelector(".by, .speaker, .author, .username, .name, .message-sender, .byline");
+    if (!speaker || speaker.parentElement !== message || message.querySelector(":scope > .message-text")) return;
+
+    const content = document.createElement("span");
+    content.className = "message-text";
+    let node = speaker.nextSibling;
+    while (node) {
+      const next = node.nextSibling;
+      content.appendChild(node);
+      node = next;
+    }
+    message.appendChild(content);
+    message.classList.add("message-with-speaker");
+  });
   template.content.querySelectorAll("img").forEach((element) => {
     element.setAttribute("referrerpolicy", "no-referrer");
   });
@@ -958,6 +973,27 @@ function Editor({ projectId, token }) {
     );
   }
 
+  function lastSpeakerBefore(index) {
+    for (let i = index - 1; i >= 0; i -= 1) {
+      const previous = blocks[i];
+      if (previous?.speakerName) return previous.speakerName;
+      if (previous?.blockType === "handout" || /\bdesc\b/i.test(previous?.rawHtml || "")) return null;
+    }
+    return null;
+  }
+
+  function isContinuationAt(block, index) {
+    const previousBlock = blocks[index - 1];
+    if (isContinuationBlock(block, previousBlock)) return true;
+    return (
+      !block.speakerName &&
+      Boolean(lastSpeakerBefore(index)) &&
+      block.blockType === "narration" &&
+      /class=["'][^"']*\bmessage\b[^"']*\bgeneral\b/i.test(block.rawHtml || "") &&
+      !/\bdesc\b/i.test(block.rawHtml || "")
+    );
+  }
+
   return (
     <main className="editor-shell">
       <header className="topbar">
@@ -984,7 +1020,7 @@ function Editor({ projectId, token }) {
               token={token}
               settings={settings}
               onUpdated={updateBlock}
-              isContinuation={isContinuationBlock(block, blocks[index - 1])}
+              isContinuation={isContinuationAt(block, index)}
             />
           ))}
         </section>

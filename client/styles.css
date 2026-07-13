@@ -316,6 +316,10 @@ textarea:focus,
   max-width: 100% !important;
 }
 
+.rendered-html .message.general {
+  padding-left: 24px !important;
+}
+
 .rendered-html .message.desc.desc-align-center,
 .rendered-html .message.desc :where([align="center"], center) {
   text-align: center;
@@ -341,9 +345,20 @@ textarea:focus,
 }
 
 .rendered-html .by {
+  display: inline-block;
   left: 0 !important;
   margin-right: 0.35em;
   position: static !important;
+  text-align: right;
+  vertical-align: top;
+  white-space: nowrap;
+  width: 5.8em;
+}
+
+.rendered-html .message-text {
+  display: inline-block;
+  max-width: calc(100% - 6.4em);
+  vertical-align: top;
 }
 
 .rendered-html .locked-speaker {
@@ -357,46 +372,12 @@ textarea:focus,
   max-width: 100%;
 }
 
-.rendered-html table {
-  border-collapse: collapse;
-  display: table;
-  max-width: 100%;
-  table-layout: fixed;
-  width: 100% !important;
-}
-
 .rendered-html :where([class*="rolltemplate"], [class*="sheet-rolltemplate"]) {
   display: inline-block !important;
-  font-size: 13px;
-  line-height: 1.3;
   margin-left: 0.35em;
   max-width: min(100%, 640px);
   overflow: visible;
   vertical-align: top;
-}
-
-.rendered-html :where([class*="rolltemplate"], [class*="sheet-rolltemplate"]) table {
-  font-size: inherit;
-  line-height: inherit;
-}
-
-.rendered-html tbody,
-.rendered-html tr {
-  max-width: 100%;
-}
-
-.rendered-html td,
-.rendered-html th {
-  max-width: 100%;
-  min-width: 0 !important;
-  overflow-wrap: anywhere;
-  padding: 2px 4px;
-  word-break: break-word;
-}
-
-.rendered-html :where([class*="rolltemplate"], [class*="sheet-rolltemplate"]) td,
-.rendered-html :where([class*="rolltemplate"], [class*="sheet-rolltemplate"]) th {
-  padding: 1px 3px !important;
 }
 
 .rendered-html pre,
@@ -456,7 +437,7 @@ textarea:focus,
 }
 
 .log-block.continuation .rendered-html .message.general {
-  padding-left: 60px !important;
+  padding-left: calc(24px + 6.4em) !important;
 }
 
 .handout-text {
