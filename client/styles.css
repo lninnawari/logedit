@@ -59,7 +59,7 @@ button:disabled {
   align-items: center;
   display: flex;
   justify-content: flex-end;
-  max-width: 940px;
+  max-width: 1410px;
   width: 100%;
 }
 
@@ -86,7 +86,7 @@ button:disabled {
 
 .admin-grid.single {
   grid-template-columns: minmax(0, 1fr);
-  max-width: 940px;
+  max-width: 1410px;
 }
 
 .upload-panel,
