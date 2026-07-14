@@ -773,6 +773,133 @@ textarea {
   max-width: none;
 }
 
+.spellcheck-panel {
+  background: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 24px 80px rgba(20, 34, 28, 0.22);
+  display: grid;
+  gap: 14px;
+  max-width: 760px;
+  padding: 22px;
+}
+
+.spellcheck-panel header {
+  display: grid;
+  gap: 4px;
+  padding-right: 34px;
+}
+
+.spellcheck-panel h2 {
+  font-size: 20px;
+  margin: 0;
+}
+
+.spellcheck-panel header p {
+  color: #66746f;
+  font-size: 13px;
+  margin: 0;
+}
+
+.spellcheck-list {
+  display: grid;
+  gap: 10px;
+  max-height: min(62vh, 560px);
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.spellcheck-item {
+  background: #f8fbf9;
+  border: 1px solid #dfe9e4;
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: auto minmax(0, 1fr);
+  padding: 12px;
+}
+
+.spellcheck-check {
+  align-items: center;
+  color: #50645d;
+  display: inline-flex;
+  font-size: 13px;
+  gap: 6px;
+}
+
+.spellcheck-content {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.spellcheck-row {
+  align-items: center;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 42px minmax(0, 1fr);
+}
+
+.spellcheck-row span,
+.spellcheck-help span {
+  color: #66746f;
+  font-size: 12px;
+}
+
+.spellcheck-row strong {
+  color: #8b342e;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.spellcheck-row select {
+  height: 34px;
+  min-width: 0;
+}
+
+.spellcheck-help {
+  display: grid;
+  gap: 6px;
+  grid-template-columns: 42px minmax(0, 1fr);
+}
+
+.spellcheck-help p,
+.spellcheck-context {
+  margin: 0;
+}
+
+.spellcheck-help p {
+  color: #31433d;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.spellcheck-context {
+  background: #ffffff;
+  border: 1px solid #e6eee9;
+  border-radius: 6px;
+  color: #66746f;
+  font-size: 12px;
+  line-height: 1.5;
+  max-height: 4.5em;
+  overflow: hidden;
+  padding: 8px;
+}
+
+.spellcheck-footer {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.spellcheck-progress {
+  background: #f6faf8;
+  border: 1px solid #dce7e1;
+  border-radius: 8px;
+  color: #41534d;
+  font-size: 13px;
+  padding: 10px 12px;
+}
+
 .modal-close {
   position: absolute;
   right: 12px;

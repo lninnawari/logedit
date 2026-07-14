@@ -12,6 +12,11 @@ const { asyncHandler } = require("../middleware/asyncHandler");
 const { applyCorrections } = require("../services/correctionEngine");
 const { parseHtmlToBlocks } = require("../services/htmlParser");
 const { generateSharePassword } = require("../services/passwords");
+const {
+  applySpellCheckChanges,
+  getSpellCheckJob,
+  startSpellCheckJob,
+} = require("../services/spellCheckJobs");
 
 const router = Router();
 const htmlUploadLimit = 30 * 1024 * 1024;
@@ -57,6 +62,20 @@ const updateSettingsSchema = z
 
 const updateSharePasswordSchema = z.object({
   password: z.string().min(6),
+});
+
+const applySpellCheckSchema = z.object({
+  changes: z
+    .array(
+      z.object({
+        blockId: z.string().uuid(),
+        start: z.number().int().min(0),
+        end: z.number().int().min(0),
+        original: z.string(),
+        replacement: z.string(),
+      })
+    )
+    .max(500),
 });
 
 router.use(requireAdmin);
@@ -273,6 +292,38 @@ router.patch(
     });
 
     res.json(settings);
+  })
+);
+
+router.post(
+  "/:id/spellcheck/start",
+  asyncHandler(async (req, res) => {
+    const project = await prisma.project.findUnique({
+      where: { id: req.params.id },
+      select: { id: true },
+    });
+    if (!project) return res.status(404).json({ error: "Project not found." });
+
+    const jobId = await startSpellCheckJob(prisma, req.params.id);
+    res.status(202).json({ jobId });
+  })
+);
+
+router.get(
+  "/:id/spellcheck/status/:jobId",
+  asyncHandler(async (req, res) => {
+    const job = getSpellCheckJob(req.params.id, req.params.jobId);
+    if (!job) return res.status(404).json({ error: "Spellcheck job not found." });
+    res.json(job);
+  })
+);
+
+router.post(
+  "/:id/spellcheck/apply",
+  asyncHandler(async (req, res) => {
+    const input = applySpellCheckSchema.parse(req.body);
+    const result = await applySpellCheckChanges(prisma, req.params.id, input.changes);
+    res.json(result);
   })
 );
 

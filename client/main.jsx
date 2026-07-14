@@ -1013,6 +1013,108 @@ function AddBlockForm({ onSubmit, onCancel }) {
   );
 }
 
+function SpellCheckDialog({ issues, failures, blocks, isApplying, onApply, onClose }) {
+  const [checked, setChecked] = useState({});
+  const [replacements, setReplacements] = useState({});
+  const blockMap = useMemo(() => new Map(blocks.map((block) => [block.id, block])), [blocks]);
+
+  useEffect(() => {
+    const nextChecked = {};
+    const nextReplacements = {};
+    issues.forEach((issue) => {
+      nextChecked[issue.id] = true;
+      nextReplacements[issue.id] = issue.candidates[0] || "";
+    });
+    setChecked(nextChecked);
+    setReplacements(nextReplacements);
+  }, [issues]);
+
+  function submitSelected() {
+    const changes = issues
+      .filter((issue) => checked[issue.id] && replacements[issue.id])
+      .map((issue) => ({
+        blockId: issue.blockId,
+        start: issue.start,
+        end: issue.end,
+        original: issue.original,
+        replacement: replacements[issue.id],
+      }));
+
+    onApply(changes);
+  }
+
+  const selectedCount = issues.filter((issue) => checked[issue.id]).length;
+
+  return (
+    <div className="modal-backdrop">
+      <section className="modal-panel spellcheck-panel">
+        <button type="button" className="icon-button modal-close" onClick={onClose} title="닫기">
+          <X size={16} />
+        </button>
+        <header>
+          <h2>맞춤법 검사</h2>
+          <p>
+            {issues.length.toLocaleString()}개 후보 · {selectedCount.toLocaleString()}개 선택
+          </p>
+        </header>
+        {failures.length > 0 ? <p className="error-text">{failures.length.toLocaleString()}개 구간은 검사하지 못했습니다.</p> : null}
+        <div className="spellcheck-list">
+          {issues.map((issue) => {
+            const block = blockMap.get(issue.blockId);
+            return (
+              <article className="spellcheck-item" key={issue.id}>
+                <label className="spellcheck-check">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(checked[issue.id])}
+                    onChange={(event) => setChecked((current) => ({ ...current, [issue.id]: event.target.checked }))}
+                  />
+                  <span>적용</span>
+                </label>
+                <div className="spellcheck-content">
+                  <div className="spellcheck-row">
+                    <span>기존</span>
+                    <strong>{issue.original}</strong>
+                  </div>
+                  <label className="spellcheck-row">
+                    <span>바꿈</span>
+                    <select
+                      value={replacements[issue.id] || ""}
+                      onChange={(event) => setReplacements((current) => ({ ...current, [issue.id]: event.target.value }))}
+                    >
+                      {issue.candidates.map((candidate) => (
+                        <option value={candidate} key={candidate}>
+                          {candidate}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  {issue.help ? (
+                    <div className="spellcheck-help">
+                      <span>사유</span>
+                      <p>{issue.help}</p>
+                    </div>
+                  ) : null}
+                  {block ? <p className="spellcheck-context">{block.textContent}</p> : null}
+                </div>
+              </article>
+            );
+          })}
+        </div>
+        <footer className="spellcheck-footer">
+          <button type="button" className="secondary" onClick={onClose}>
+            닫기
+          </button>
+          <button type="button" className="primary-button" onClick={submitSelected} disabled={isApplying || selectedCount === 0}>
+            {isApplying ? <Loader2 className="spin" size={16} /> : <Check size={16} />}
+            선택 적용
+          </button>
+        </footer>
+      </section>
+    </div>
+  );
+}
+
 function Block({
   block,
   token,
@@ -1257,11 +1359,22 @@ function Editor({ projectId, token }) {
   const [blocks, setBlocks] = useState([]);
   const [project, setProject] = useState(null);
   const [settings, setSettings] = useState(null);
+  const [adminToken] = useState(() => window.localStorage.getItem("adminToken") || "");
   const [addAfterBlockId, setAddAfterBlockId] = useState(undefined);
   const [selectedBlockId, setSelectedBlockId] = useState("");
   const [hoveredBlockId, setHoveredBlockId] = useState("");
   const [trashBlocks, setTrashBlocks] = useState([]);
   const [trashOpen, setTrashOpen] = useState(false);
+  const [spellCheck, setSpellCheck] = useState({
+    status: "idle",
+    total: 0,
+    completed: 0,
+    results: [],
+    failures: [],
+    error: "",
+  });
+  const [spellDialogOpen, setSpellDialogOpen] = useState(false);
+  const [spellApplying, setSpellApplying] = useState(false);
   const [state, setState] = useState("loading");
   const [error, setError] = useState("");
 
@@ -1288,6 +1401,11 @@ function Editor({ projectId, token }) {
 
   function updateBlock(updated) {
     setBlocks((current) => current.map((block) => (block.id === updated.id ? updated : block)));
+  }
+
+  function updateBlocks(updatedBlocks) {
+    const updatedMap = new Map(updatedBlocks.map((block) => [block.id, block]));
+    setBlocks((current) => current.map((block) => updatedMap.get(block.id) || block));
   }
 
   function sortBlocks(nextBlocks) {
@@ -1348,6 +1466,80 @@ function Editor({ projectId, token }) {
     });
     setTrashBlocks((current) => current.filter((block) => block.id !== blockId));
     setBlocks((current) => sortBlocks([...current, restored]));
+  }
+
+  async function startSpellCheck() {
+    if (!adminToken) return;
+    setSpellCheck({
+      status: "running",
+      total: 0,
+      completed: 0,
+      results: [],
+      failures: [],
+      error: "",
+    });
+
+    try {
+      const started = await api(`/api/projects/${projectId}/spellcheck/start`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${adminToken}` },
+      });
+
+      let finished = false;
+      let lastStatus = null;
+      while (!finished) {
+        await new Promise((resolve) => setTimeout(resolve, 1200));
+        const status = await api(`/api/projects/${projectId}/spellcheck/status/${started.jobId}`, {
+          headers: { Authorization: `Bearer ${adminToken}` },
+        });
+        lastStatus = status;
+        setSpellCheck({ ...status, error: "" });
+        finished = status.status === "done";
+      }
+
+      if (lastStatus?.results?.length) {
+        setSpellDialogOpen(true);
+      } else if (lastStatus?.failures?.length) {
+        setSpellCheck({
+          ...lastStatus,
+          status: "error",
+          error: "맞춤법 검사기에 연결하지 못했습니다. 잠시 뒤 다시 시도해 주세요.",
+        });
+      } else {
+        setSpellDialogOpen(false);
+      }
+    } catch (err) {
+      setSpellCheck((current) => ({ ...current, status: "error", error: err.message }));
+    }
+  }
+
+  async function applySpellCheckChanges(changes) {
+    if (!adminToken || changes.length === 0) return;
+    setSpellApplying(true);
+    try {
+      const result = await api(`/api/projects/${projectId}/spellcheck/apply`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${adminToken}` },
+        body: JSON.stringify({ changes }),
+      });
+      updateBlocks(result.updatedBlocks || []);
+      setSpellDialogOpen(false);
+      setSpellCheck({
+        status: "idle",
+        total: 0,
+        completed: 0,
+        results: [],
+        failures: [],
+        error: "",
+      });
+      if (result.skipped?.length) {
+        window.alert(`${result.skipped.length.toLocaleString()}개 항목은 본문이 바뀌어 건너뛰었습니다.`);
+      }
+    } catch (err) {
+      setSpellCheck((current) => ({ ...current, error: err.message }));
+    } finally {
+      setSpellApplying(false);
+    }
   }
 
   function isContinuationBlock(block, previousBlock) {
@@ -1417,11 +1609,36 @@ function Editor({ projectId, token }) {
               <Plus size={14} />
               맨 앞에 추가
             </button>
+            {adminToken ? (
+              <button type="button" className="secondary" onClick={startSpellCheck} disabled={spellCheck.status === "running"}>
+                {spellCheck.status === "running" ? <Loader2 className="spin" size={14} /> : <Check size={14} />}
+                맞춤법 검사
+              </button>
+            ) : null}
             <button type="button" className="secondary" onClick={toggleTrash}>
               <Trash2 size={14} />
               휴지통
             </button>
           </div>
+          {spellCheck.status === "running" ? (
+            <div className="spellcheck-progress">
+              검사 중 {spellCheck.total ? `${spellCheck.completed.toLocaleString()} / ${spellCheck.total.toLocaleString()}` : "준비 중"}
+            </div>
+          ) : null}
+          {spellCheck.status === "done" && spellCheck.results.length === 0 ? (
+            <div className="spellcheck-progress">맞춤법 검사 후보가 없습니다.</div>
+          ) : null}
+          {spellCheck.status === "error" ? <div className="spellcheck-progress error-text">{spellCheck.error}</div> : null}
+          {spellDialogOpen ? (
+            <SpellCheckDialog
+              issues={spellCheck.results}
+              failures={spellCheck.failures}
+              blocks={blocks}
+              isApplying={spellApplying}
+              onApply={applySpellCheckChanges}
+              onClose={() => setSpellDialogOpen(false)}
+            />
+          ) : null}
           {trashOpen ? (
             <aside className="trash-panel">
               <h2>휴지통</h2>
