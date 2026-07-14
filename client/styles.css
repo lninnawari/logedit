@@ -1,6 +1,7 @@
 @import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css");
 
 :root {
+  --admin-panel-width: 800px;
   color: #1d2428;
   background: #f5f7f6;
   font-family:
@@ -60,8 +61,8 @@ button:disabled {
   align-items: center;
   display: flex;
   justify-content: flex-end;
-  max-width: 800px;
-  width: 100%;
+  max-width: var(--admin-panel-width);
+  width: min(100vw, var(--admin-panel-width));
 }
 
 .admin-topbar span {
@@ -87,8 +88,8 @@ button:disabled {
 
 .admin-grid.single {
   grid-template-columns: minmax(0, 1fr);
-  max-width: 800px;
-  width: 100%;
+  max-width: var(--admin-panel-width);
+  width: min(100vw, var(--admin-panel-width));
 }
 
 .upload-panel,
@@ -112,9 +113,9 @@ button:disabled {
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.86) inset,
     0 22px 48px rgba(43, 70, 58, 0.11);
-  max-width: 800px;
+  max-width: var(--admin-panel-width);
   min-height: 680px;
-  width: 100%;
+  width: min(100vw, var(--admin-panel-width));
 }
 
 .upload-panel {
