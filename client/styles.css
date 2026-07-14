@@ -48,8 +48,8 @@ button:disabled {
 .admin-shell {
   align-items: flex-start;
   background:
-    linear-gradient(180deg, rgba(232, 242, 236, 0.82), rgba(212, 228, 219, 0.95) 42%),
-    #d4e4db;
+    linear-gradient(180deg, rgba(246, 250, 247, 0.92), rgba(228, 239, 232, 0.96) 42%),
+    #e4efe8;
   display: grid;
   gap: 14px;
   justify-items: center;
@@ -105,13 +105,13 @@ button:disabled {
 }
 
 .project-panel {
-  background: #fbfdfc;
-  border-color: #cbdad3;
+  background: #ffffff;
+  border-color: #d4e1da;
   box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.78) inset,
-    0 24px 58px rgba(31, 55, 45, 0.16);
+    0 1px 0 rgba(255, 255, 255, 0.86) inset,
+    0 22px 48px rgba(43, 70, 58, 0.11);
   max-width: none;
-  min-height: 520px;
+  min-height: 680px;
 }
 
 .upload-panel {
@@ -609,7 +609,7 @@ textarea:focus,
 }
 
 .handout-text {
-  background: transparent;
+  background: #f1f6f3;
   border: 0;
   border-radius: 4px;
   color: #28423a;
@@ -620,7 +620,7 @@ textarea:focus,
   justify-content: center;
   line-height: 1.5;
   outline: none;
-  padding: 2px 4px;
+  padding: 4px 6px;
   text-align: center;
   width: 100%;
 }
@@ -775,29 +775,28 @@ textarea {
 .project-list {
   align-content: start;
   display: grid;
-  gap: 10px;
-  min-height: 360px;
+  gap: 0;
+  min-height: 500px;
 }
 
 .project-item {
   align-items: start;
-  background: #fbfdfc;
-  border: 1px solid #dfe8e3;
-  border-radius: 8px;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid #e3ebe7;
+  border-radius: 0;
   display: grid;
   gap: 14px;
   grid-template-columns: minmax(0, 1fr) auto;
-  padding: 14px;
+  padding: 16px 2px;
   transition:
-    border-color 0.14s ease,
-    box-shadow 0.14s ease,
-    transform 0.14s ease;
+    background 0.14s ease,
+    border-color 0.14s ease;
 }
 
 .project-item:hover {
-  border-color: #c8d8d1;
-  box-shadow: 0 10px 24px rgba(31, 52, 43, 0.07);
-  transform: translateY(-1px);
+  background: #f7faf8;
+  border-color: #cbd9d2;
 }
 
 .project-item h3 {
@@ -809,6 +808,7 @@ textarea {
 .project-item p,
 .muted-text {
   color: #66746f;
+  font-size: 13px;
   margin: 4px 0 0;
 }
 
