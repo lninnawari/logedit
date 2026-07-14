@@ -999,7 +999,10 @@ function Block({
   onDeleted,
   onReverted,
   isSelected = false,
+  actionsVisible = false,
   onSelected,
+  onHoverStart,
+  onHoverEnd,
   continuationSpeakerName = "",
 }) {
   const [isEditing, setIsEditing] = useState(false);
@@ -1140,9 +1143,13 @@ function Block({
   return (
     <article
       className={`log-block ${block.isEdited ? "edited" : ""} ${isEditing ? "editing" : ""} ${isSelected ? "selected" : ""} ${
+        actionsVisible ? "actions-visible" : ""
+      } ${
         continuationSpeakerName ? "continuation" : ""
       }`}
       onClick={() => onSelected(block.id)}
+      onMouseEnter={() => onHoverStart(block.id)}
+      onMouseLeave={() => onHoverEnd(block.id)}
       onDoubleClick={startEditing}
       title={isEditing ? "수정 후 바깥을 클릭하면 저장됩니다." : "더블클릭해서 수정"}
     >
@@ -1166,6 +1173,17 @@ function Block({
         >
           <Plus size={14} />
         </button>
+        <button
+          type="button"
+          className="icon-button danger"
+          onClick={(event) => {
+            event.stopPropagation();
+            onDeleted(block.id);
+          }}
+          title="삭제"
+        >
+          <Trash2 size={14} />
+        </button>
         {block.isEdited ? (
           <button
             type="button"
@@ -1179,17 +1197,6 @@ function Block({
             <RotateCcw size={13} />
           </button>
         ) : null}
-        <button
-          type="button"
-          className="icon-button danger"
-          onClick={(event) => {
-            event.stopPropagation();
-            onDeleted(block.id);
-          }}
-          title="삭제"
-        >
-          <Trash2 size={14} />
-        </button>
       </div>
       <div className="block-body">
         {block.blockType === "handout" ? (
@@ -1228,6 +1235,7 @@ function Editor({ projectId, token }) {
   const [settings, setSettings] = useState(null);
   const [addAfterBlockId, setAddAfterBlockId] = useState(undefined);
   const [selectedBlockId, setSelectedBlockId] = useState("");
+  const [hoveredBlockId, setHoveredBlockId] = useState("");
   const [trashBlocks, setTrashBlocks] = useState([]);
   const [trashOpen, setTrashOpen] = useState(false);
   const [state, setState] = useState("loading");
@@ -1278,7 +1286,22 @@ function Editor({ projectId, token }) {
     });
     setBlocks((current) => current.filter((block) => block.id !== blockId));
     if (selectedBlockId === blockId) setSelectedBlockId("");
+    if (hoveredBlockId === blockId) setHoveredBlockId("");
     if (trashOpen) loadTrash();
+  }
+
+  function selectBlock(blockId) {
+    setSelectedBlockId(blockId);
+    setHoveredBlockId("");
+  }
+
+  function hoverBlock(blockId) {
+    if (selectedBlockId) return;
+    setHoveredBlockId(blockId);
+  }
+
+  function unhoverBlock(blockId) {
+    if (hoveredBlockId === blockId) setHoveredBlockId("");
   }
 
   async function loadTrash() {
@@ -1361,7 +1384,7 @@ function Editor({ projectId, token }) {
       ) : null}
       {state === "error" ? <div className="center-state error-text">{error}</div> : null}
       {state === "ready" ? (
-        <section className="log-list">
+        <section className={`log-list ${selectedBlockId ? "has-selected-block" : ""}`}>
           <div className="editor-actions-row">
             <button type="button" onClick={() => setAddAfterBlockId(null)}>
               <Plus size={14} />
@@ -1401,7 +1424,10 @@ function Editor({ projectId, token }) {
                 onDeleted={deleteBlock}
                 onReverted={updateBlock}
                 isSelected={selectedBlockId === block.id}
-                onSelected={setSelectedBlockId}
+                actionsVisible={selectedBlockId ? selectedBlockId === block.id : hoveredBlockId === block.id}
+                onSelected={selectBlock}
+                onHoverStart={hoverBlock}
+                onHoverEnd={unhoverBlock}
                 continuationSpeakerName={continuationSpeakerAt(block, index)}
               />
               {addAfterBlockId === block.id ? (

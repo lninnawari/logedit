@@ -48,8 +48,8 @@ button:disabled {
 .admin-shell {
   align-items: flex-start;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(238, 243, 241, 0.92) 36%),
-    #eef3f1;
+    linear-gradient(180deg, rgba(232, 242, 236, 0.82), rgba(212, 228, 219, 0.95) 42%),
+    #d4e4db;
   display: grid;
   gap: 14px;
   justify-items: center;
@@ -105,6 +105,11 @@ button:disabled {
 }
 
 .project-panel {
+  background: #fbfdfc;
+  border-color: #cbdad3;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.78) inset,
+    0 24px 58px rgba(31, 55, 45, 0.16);
   max-width: none;
   min-height: 520px;
 }
@@ -330,7 +335,7 @@ textarea:focus,
     border-color 0.12s ease;
 }
 
-.log-block:hover {
+.log-list:not(.has-selected-block) .log-block:hover {
   background: #eef6f2;
   border-left-color: #95c9b1;
 }
@@ -352,8 +357,9 @@ textarea:focus,
 .block-quick-actions {
   display: none;
   gap: 4px;
+  left: calc(100% + 6px);
   position: absolute;
-  right: -112px;
+  right: auto;
   top: 50%;
   transform: translateY(-50%);
   z-index: 1;
@@ -364,9 +370,7 @@ textarea:focus,
   width: 25px;
 }
 
-.log-block:hover .block-quick-actions,
-.log-block.selected .block-quick-actions,
-.log-block:focus-within .block-quick-actions {
+.log-block.actions-visible .block-quick-actions {
   display: flex;
 }
 
@@ -951,6 +955,7 @@ textarea {
 
   .block-quick-actions {
     background: rgba(255, 255, 255, 0.9);
+    left: auto;
     right: 4px;
     top: 2px;
     transform: none;
