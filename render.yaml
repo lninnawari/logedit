@@ -3,7 +3,7 @@ services:
     name: trpg-log-editor
     runtime: node
     plan: free
-    buildCommand: npm ci && python3 -m pip install --user -r requirements.txt && npm run render:build
+    buildCommand: npm ci && npm run render:build
     startCommand: npm run render:start
     healthCheckPath: /health
     envVars:
@@ -14,4 +14,4 @@ services:
       - key: JWT_SECRET
         sync: false
       - key: SPELLCHECK_PROVIDER
-        value: hanspell
+        value: naver

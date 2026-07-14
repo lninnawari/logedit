@@ -1,7 +1,36 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
 
+const { parseNaverResponse } = require("../src/services/spellCheck");
 const { remapOffsetsToBlocks, splitIntoChunks } = require("../src/services/spellCheckJobs");
+
+test("parses marked naver spellcheck issues", () => {
+  const raw = JSON.stringify({
+    message: {
+      result: {
+        origin_html:
+          "<span class='result_underline'>안녕 하세요.</span> <span class='result_underline'>작성됬습니다.</span>",
+        html: "<em class='green_text'>안녕하세요.</em> <em class='red_text'>작성됐습니다.</em>",
+        notag_html: "안녕하세요. 작성됐습니다.",
+      },
+    },
+  });
+
+  const issues = parseNaverResponse(raw, "안녕 하세요. 작성됬습니다.");
+
+  assert.deepEqual(
+    issues.map((issue) => ({
+      start: issue.start,
+      end: issue.end,
+      original: issue.original,
+      candidates: issue.candidates,
+    })),
+    [
+      { start: 0, end: 7, original: "안녕 하세요.", candidates: ["안녕하세요."] },
+      { start: 8, end: 15, original: "작성됬습니다.", candidates: ["작성됐습니다."] },
+    ]
+  );
+});
 
 test("splits chunks without splitting blocks", () => {
   const chunks = splitIntoChunks(

@@ -1500,10 +1500,13 @@ function Editor({ projectId, token }) {
       if (lastStatus?.results?.length) {
         setSpellDialogOpen(true);
       } else if (lastStatus?.failures?.length) {
+        const failureMessage = lastStatus.failures[0]?.message;
         setSpellCheck({
           ...lastStatus,
           status: "error",
-          error: "맞춤법 검사기에 연결하지 못했습니다. 잠시 뒤 다시 시도해 주세요.",
+          error: failureMessage
+            ? `맞춤법 검사기에 연결하지 못했습니다: ${failureMessage}`
+            : "맞춤법 검사기에 연결하지 못했습니다. 잠시 뒤 다시 시도해 주세요.",
         });
       } else {
         setSpellDialogOpen(false);
