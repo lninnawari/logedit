@@ -52,6 +52,7 @@ button:disabled {
   gap: 14px;
   justify-items: center;
   overflow-x: auto;
+  padding: 24px 0;
   width: 100%;
 }
 
