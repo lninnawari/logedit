@@ -1,62 +1,59 @@
-const cheerio = require("cheerio");
+const { spawn } = require("node:child_process");
+const path = require("node:path");
 
-const SPELLER_URL = process.env.SPELLCHECK_URL || "https://nara-speller.co.kr/speller/results";
+const provider = process.env.SPELLCHECK_PROVIDER || "hanspell";
+const pythonCommand = process.env.PYTHON_BIN || (process.platform === "win32" ? "python" : "python3");
+const scriptPath = path.join(__dirname, "..", "..", "scripts", "spellcheck_hanspell.py");
 
-function stripHtml(value) {
-  return cheerio.load(String(value || ""), { decodeEntities: false }).text().trim();
-}
+function runPythonSpellCheck(text) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(pythonCommand, [scriptPath], {
+      stdio: ["pipe", "pipe", "pipe"],
+    });
 
-function parseCandidateWords(value) {
-  return String(value || "")
-    .split("|")
-    .map((candidate) => stripHtml(candidate))
-    .filter(Boolean);
-}
+    let stdout = "";
+    let stderr = "";
 
-function parseSpellerHtml(html) {
-  const match = String(html || "").match(/data\s*=\s*(\[[\s\S]*?\]);/);
-  if (!match) return [];
+    child.stdout.setEncoding("utf8");
+    child.stderr.setEncoding("utf8");
+    child.stdout.on("data", (chunk) => {
+      stdout += chunk;
+    });
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk;
+    });
+    child.on("error", reject);
+    child.on("close", (code) => {
+      if (code !== 0) {
+        reject(new Error(stderr.trim() || `py-hanspell exited with code ${code}`));
+        return;
+      }
 
-  const parsed = JSON.parse(match[1]);
-  const firstResult = Array.isArray(parsed) ? parsed[0] : null;
-  const errors = Array.isArray(firstResult?.errInfo) ? firstResult.errInfo : [];
+      try {
+        const parsed = JSON.parse(stdout);
+        if (!parsed.ok) {
+          reject(new Error(parsed.error || "py-hanspell failed"));
+          return;
+        }
+        resolve(parsed.issues || []);
+      } catch (error) {
+        reject(new Error(`Invalid py-hanspell response: ${error.message}`));
+      }
+    });
 
-  return errors
-    .filter((error) => error && error.candWord && Number.isFinite(Number(error.start)) && Number.isFinite(Number(error.end)))
-    .map((error) => ({
-      start: Number(error.start),
-      end: Number(error.end),
-      original: stripHtml(error.orgStr),
-      candidates: parseCandidateWords(error.candWord),
-      help: stripHtml(error.help),
-    }))
-    .filter((issue) => issue.original && issue.candidates.length > 0 && issue.end > issue.start);
+    child.stdin.end(JSON.stringify({ text: String(text || "") }));
+  });
 }
 
 async function checkChunk(text) {
-  const body = `text1=${encodeURIComponent(String(text || "").split("\n").join("\r\n"))}`;
-
-  const response = await fetch(SPELLER_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-      "User-Agent":
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36",
-      Referer: new URL("/speller/", SPELLER_URL).toString(),
-      Origin: new URL(SPELLER_URL).origin,
-    },
-    body,
-  });
-
-  if (!response.ok) {
-    throw new Error(`Speller request failed with status ${response.status}`);
+  if (provider !== "hanspell") {
+    throw new Error(`Unsupported spellcheck provider: ${provider}`);
   }
 
-  return parseSpellerHtml(await response.text());
+  return runPythonSpellCheck(text);
 }
 
 module.exports = {
   checkChunk,
-  parseSpellerHtml,
-  SPELLER_URL,
+  runPythonSpellCheck,
 };

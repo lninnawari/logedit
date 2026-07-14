@@ -1031,7 +1031,7 @@ function SpellCheckDialog({ issues, failures, blocks, isApplying, onApply, onClo
 
   function submitSelected() {
     const changes = issues
-      .filter((issue) => checked[issue.id] && replacements[issue.id])
+      .filter((issue) => checked[issue.id] && replacements[issue.id] !== undefined)
       .map((issue) => ({
         blockId: issue.blockId,
         start: issue.start,
@@ -1084,7 +1084,7 @@ function SpellCheckDialog({ issues, failures, blocks, isApplying, onApply, onClo
                     >
                       {issue.candidates.map((candidate) => (
                         <option value={candidate} key={candidate}>
-                          {candidate}
+                          {candidate || "(삭제)"}
                         </option>
                       ))}
                     </select>
@@ -1592,9 +1592,17 @@ function Editor({ projectId, token }) {
             {blocks.length.toLocaleString()} blocks · {countTextCharacters(blocks).toLocaleString()}자
           </p>
         </div>
-        <button className="icon-button" onClick={loadBlocks} title="새로고침">
-          <RefreshCw size={18} />
-        </button>
+        <div className="topbar-actions">
+          {adminToken ? (
+            <button type="button" className="secondary" onClick={startSpellCheck} disabled={spellCheck.status === "running"}>
+              {spellCheck.status === "running" ? <Loader2 className="spin" size={14} /> : <Check size={14} />}
+              맞춤법 검사
+            </button>
+          ) : null}
+          <button className="icon-button" onClick={loadBlocks} title="새로고침">
+            <RefreshCw size={18} />
+          </button>
+        </div>
       </header>
       {state === "loading" ? (
         <div className="center-state">
@@ -1609,12 +1617,6 @@ function Editor({ projectId, token }) {
               <Plus size={14} />
               맨 앞에 추가
             </button>
-            {adminToken ? (
-              <button type="button" className="secondary" onClick={startSpellCheck} disabled={spellCheck.status === "running"}>
-                {spellCheck.status === "running" ? <Loader2 className="spin" size={14} /> : <Check size={14} />}
-                맞춤법 검사
-              </button>
-            ) : null}
             <button type="button" className="secondary" onClick={toggleTrash}>
               <Trash2 size={14} />
               휴지통

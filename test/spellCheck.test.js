@@ -1,26 +1,7 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
 
-const { parseSpellerHtml } = require("../src/services/spellCheck");
 const { remapOffsetsToBlocks, splitIntoChunks } = require("../src/services/spellCheckJobs");
-
-test("parses nara speller result data from HTML", () => {
-  const html = `
-    <html><script>
-      data = [{"errInfo":[{"start":0,"end":2,"orgStr":"됬다","candWord":"됐다|되었다","help":"맞춤법 오류"}]}];
-    </script></html>
-  `;
-
-  assert.deepEqual(parseSpellerHtml(html), [
-    {
-      start: 0,
-      end: 2,
-      original: "됬다",
-      candidates: ["됐다", "되었다"],
-      help: "맞춤법 오류",
-    },
-  ]);
-});
 
 test("splits chunks without splitting blocks", () => {
   const chunks = splitIntoChunks(
@@ -29,12 +10,26 @@ test("splits chunks without splitting blocks", () => {
       { id: "b", textContent: "셋 넷" },
       { id: "c", textContent: "다섯" },
     ],
-    4
+    10
   );
 
   assert.equal(chunks.length, 2);
   assert.deepEqual(chunks[0].blocks.map((block) => block.blockId), ["a", "b"]);
   assert.deepEqual(chunks[1].blocks.map((block) => block.blockId), ["c"]);
+});
+
+test("splits long blocks while preserving block offsets", () => {
+  const chunks = splitIntoChunks([{ id: "a", textContent: "첫문장입니다. 둘째문장입니다." }], 8);
+
+  assert.ok(chunks.length > 1);
+  const secondChunk = chunks[1];
+  const remapped = remapOffsetsToBlocks(
+    [{ start: 0, end: 2, original: "둘째", candidates: ["두번째"], help: "맞춤법" }],
+    secondChunk
+  );
+
+  assert.equal(remapped[0].blockId, "a");
+  assert.equal(remapped[0].start, secondChunk.blocks[0].offsetInBlock);
 });
 
 test("remaps chunk offsets to block-local offsets", () => {

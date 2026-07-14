@@ -6,33 +6,63 @@ const { checkChunk } = require("./spellCheck");
 const jobs = new Map();
 const finishedJobTtlMs = 30 * 60 * 1000;
 
-function countWords(text) {
-  return String(text || "").split(/\s+/).filter(Boolean).length;
+function findSplitPoint(text, start, maxEnd) {
+  const preferred = ["\n", ". ", "? ", "! ", "。", " "];
+  for (const marker of preferred) {
+    const index = text.lastIndexOf(marker, maxEnd);
+    if (index > start) return index + marker.length;
+  }
+  return maxEnd;
 }
 
-function splitIntoChunks(blocks, maxWords = 280) {
-  const chunks = [];
-  let current = { blocks: [], text: "", wordCount: 0 };
+function splitBlockText(block, maxChars) {
+  const text = String(block.textContent || "");
+  if (!text.trim()) return [];
 
-  for (const block of blocks) {
-    const blockText = String(block.textContent || "");
-    if (!blockText.trim()) continue;
+  const segments = [];
+  let start = 0;
 
-    const blockWordCount = countWords(blockText);
-    if (current.blocks.length > 0 && current.wordCount + blockWordCount > maxWords) {
-      chunks.push(current);
-      current = { blocks: [], text: "", wordCount: 0 };
+  while (start < text.length) {
+    const maxEnd = Math.min(start + maxChars, text.length);
+    const end = maxEnd >= text.length ? text.length : findSplitPoint(text, start, maxEnd);
+    const segmentText = text.slice(start, end);
+
+    if (segmentText.trim()) {
+      segments.push({
+        blockId: block.id,
+        text: segmentText,
+        offsetInBlock: start,
+      });
     }
 
-    const separator = current.text ? "\n" : "";
-    const offsetInChunk = current.text.length + separator.length;
-    current.text += separator + blockText;
-    current.blocks.push({
-      blockId: block.id,
-      offsetInChunk,
-      length: blockText.length,
-    });
-    current.wordCount += blockWordCount;
+    start = end;
+  }
+
+  return segments;
+}
+
+function splitIntoChunks(blocks, maxChars = 450) {
+  const chunks = [];
+  let current = { blocks: [], text: "" };
+
+  for (const block of blocks) {
+    for (const segment of splitBlockText(block, maxChars)) {
+      const separator = current.text ? "\n" : "";
+      if (current.text && current.text.length + separator.length + segment.text.length > maxChars) {
+        chunks.push(current);
+        current = { blocks: [], text: "" };
+      }
+
+      const nextSeparator = current.text ? "\n" : "";
+      const offsetInChunk = current.text.length + nextSeparator.length;
+      current.text += nextSeparator + segment.text;
+      current.blocks.push({
+        blockId: segment.blockId,
+        offsetInChunk,
+        offsetInBlock: segment.offsetInBlock,
+        length: segment.text.length,
+      });
+    }
   }
 
   if (current.blocks.length > 0) chunks.push(current);
@@ -56,8 +86,8 @@ function remapOffsetsToBlocks(issues, chunk) {
       {
         id: randomUUID(),
         blockId: owner.blockId,
-        start,
-        end,
+        start: owner.offsetInBlock + start,
+        end: owner.offsetInBlock + end,
         original: issue.original,
         candidates: issue.candidates,
         help: issue.help,
