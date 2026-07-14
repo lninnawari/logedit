@@ -60,8 +60,8 @@ button:disabled {
   display: flex;
   justify-content: flex-end;
   max-width: none;
-  min-width: 2115px;
-  width: 2115px;
+  min-width: 1058px;
+  width: 1058px;
 }
 
 .admin-topbar span {
@@ -88,8 +88,8 @@ button:disabled {
 .admin-grid.single {
   grid-template-columns: minmax(0, 1fr);
   max-width: none;
-  min-width: 2115px;
-  width: 2115px;
+  min-width: 1058px;
+  width: 1058px;
 }
 
 .upload-panel,
