@@ -59,7 +59,7 @@ button:disabled {
   align-items: center;
   display: flex;
   justify-content: flex-end;
-  max-width: 1410px;
+  max-width: 2115px;
   width: 100%;
 }
 
@@ -86,7 +86,8 @@ button:disabled {
 
 .admin-grid.single {
   grid-template-columns: minmax(0, 1fr);
-  max-width: 1410px;
+  max-width: 2115px;
+  min-width: min(100%, 2115px);
 }
 
 .upload-panel,
@@ -293,7 +294,11 @@ textarea:focus,
 }
 
 .log-list {
+  background: #ffffff;
+  border: 1px solid #e0e8e4;
+  border-radius: 8px;
   display: block;
+  padding: 8px 10px;
 }
 
 .editor-actions-row,
@@ -609,7 +614,7 @@ textarea:focus,
 }
 
 .handout-text {
-  background: #f1f6f3;
+  background: #ffffff;
   border: 0;
   border-radius: 4px;
   color: #28423a;
