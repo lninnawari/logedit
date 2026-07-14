@@ -630,12 +630,12 @@ function ProjectList({ adminToken, refreshKey, onDeleted, onUpload, knownPasswor
           </button>
         </div>
       ) : null}
-      {state === "loading" ? <p className="muted-text">불러오는 중</p> : null}
-      {state === "error" ? <p className="error-text">{error}</p> : null}
-      {state === "ready" && projects.length === 0 ? <p className="muted-text">아직 프로젝트가 없습니다.</p> : null}
-      {state === "ready" ? (
-        <div className="project-list">
-          {projects.map((project) => (
+      <div className="project-list">
+        {state === "loading" ? <div className="project-list-state">불러오는 중</div> : null}
+        {state === "error" ? <div className="project-list-state error-text">{error}</div> : null}
+        {state === "ready" && projects.length === 0 ? <div className="project-list-state">아직 프로젝트가 없습니다.</div> : null}
+        {state === "ready"
+          ? projects.map((project) => (
             <article className="project-item" key={project.id}>
               <div className="project-summary">
                 <div className="project-title-row">
@@ -681,9 +681,9 @@ function ProjectList({ adminToken, refreshKey, onDeleted, onUpload, knownPasswor
                 </button>
               </div>
             </article>
-          ))}
-        </div>
-      ) : null}
+            ))
+          : null}
+      </div>
     </section>
   );
 }
