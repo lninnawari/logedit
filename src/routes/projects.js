@@ -35,6 +35,10 @@ const updateStatusSchema = z.object({
   status: z.enum(["editing", "confirmed", "downloaded"]),
 });
 
+const updateProjectSchema = z.object({
+  title: z.string().trim().min(1),
+});
+
 const updateSettingsSchema = z
   .object({
     removeHtmlTags: z.boolean().optional(),
@@ -182,6 +186,24 @@ router.delete(
   asyncHandler(async (req, res) => {
     await prisma.project.delete({ where: { id: req.params.id } });
     res.status(204).send();
+  })
+);
+
+router.patch(
+  "/:id",
+  asyncHandler(async (req, res) => {
+    const input = updateProjectSchema.parse(req.body);
+    const project = await prisma.project.update({
+      where: { id: req.params.id },
+      data: { title: input.title },
+      select: {
+        id: true,
+        title: true,
+        updatedAt: true,
+      },
+    });
+
+    res.json(project);
   })
 );
 

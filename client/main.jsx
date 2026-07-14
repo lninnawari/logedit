@@ -541,6 +541,19 @@ function ProjectList({ adminToken, refreshKey, onDeleted, onUpload, knownPasswor
     window.alert("공유 비밀번호가 변경되었습니다.");
   }
 
+  async function renameProject(project) {
+    const title = window.prompt("새 프로젝트명을 입력하세요.", project.title);
+    if (!title || title.trim() === project.title) return;
+
+    const updated = await api(`/api/projects/${project.id}`, {
+      method: "PATCH",
+      headers: { Authorization: `Bearer ${adminToken}` },
+      body: JSON.stringify({ title }),
+    });
+
+    setProjects((current) => current.map((item) => (item.id === project.id ? { ...item, ...updated } : item)));
+  }
+
   function showPasswordBriefly(projectId) {
     if (!knownPasswords[projectId]) return;
     setVisiblePasswords((current) => ({ ...current, [projectId]: true }));
@@ -625,7 +638,12 @@ function ProjectList({ adminToken, refreshKey, onDeleted, onUpload, knownPasswor
           {projects.map((project) => (
             <article className="project-item" key={project.id}>
               <div className="project-summary">
-                <h3>{project.title}</h3>
+                <div className="project-title-row">
+                  <h3>{project.title}</h3>
+                  <button type="button" className="bare-icon-button" onClick={() => renameProject(project)} title="프로젝트명 수정">
+                    <Pencil size={13} />
+                  </button>
+                </div>
                 <p>최종 저장 {formatDateTime(project.updatedAt)}</p>
                 <p>이미지 아이콘 {project.correctionSettings?.customHandoutIcon || "★"}</p>
                 <div className="project-password-line">
