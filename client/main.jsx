@@ -10,6 +10,7 @@ import {
   KeyRound,
   Loader2,
   LogOut,
+  Pencil,
   Plus,
   RefreshCw,
   RotateCcw,
@@ -989,7 +990,18 @@ function AddBlockForm({ onSubmit, onCancel }) {
   );
 }
 
-function Block({ block, token, settings, onUpdated, onAddAfter, onDeleted, continuationSpeakerName = "" }) {
+function Block({
+  block,
+  token,
+  settings,
+  onUpdated,
+  onAddAfter,
+  onDeleted,
+  onReverted,
+  isSelected = false,
+  onSelected,
+  continuationSpeakerName = "",
+}) {
   const [isEditing, setIsEditing] = useState(false);
   const [editingTextNodeIndex, setEditingTextNodeIndex] = useState(null);
   const [status, setStatus] = useState("idle");
@@ -1066,6 +1078,23 @@ function Block({ block, token, settings, onUpdated, onAddAfter, onDeleted, conti
     save(target.innerText, editingTextNodeIndex);
   }
 
+  async function revertBlock() {
+    setStatus("saving");
+    try {
+      const updated = await api(`/api/share/${block.projectId}/blocks/${block.id}/revert`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      onReverted(updated);
+      setIsEditing(false);
+      setEditingTextNodeIndex(null);
+      setStatus("saved");
+      window.setTimeout(() => setStatus("idle"), 1200);
+    } catch (_err) {
+      setStatus("error");
+    }
+  }
+
   function handleKeyDown(event) {
     if (event.key === "Escape") {
       event.preventDefault();
@@ -1096,13 +1125,36 @@ function Block({ block, token, settings, onUpdated, onAddAfter, onDeleted, conti
     }
   }
 
+  function startPrimaryEditing(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    const firstEditablePart = editorRef.current?.querySelector(".editable-part");
+    if (firstEditablePart) {
+      setEditingTextNodeIndex(Number(firstEditablePart.dataset.textNodeIndex));
+    } else {
+      setEditingTextNodeIndex(null);
+    }
+    setIsEditing(true);
+  }
+
   return (
     <article
-      className={`log-block ${block.isEdited ? "edited" : ""} ${isEditing ? "editing" : ""} ${continuationSpeakerName ? "continuation" : ""}`}
+      className={`log-block ${block.isEdited ? "edited" : ""} ${isEditing ? "editing" : ""} ${isSelected ? "selected" : ""} ${
+        continuationSpeakerName ? "continuation" : ""
+      }`}
+      onClick={() => onSelected(block.id)}
       onDoubleClick={startEditing}
       title={isEditing ? "수정 후 바깥을 클릭하면 저장됩니다." : "더블클릭해서 수정"}
     >
       <div className="block-quick-actions">
+        <button
+          type="button"
+          className="icon-button"
+          onClick={startPrimaryEditing}
+          title="수정"
+        >
+          <Pencil size={13} />
+        </button>
         <button
           type="button"
           className="icon-button"
@@ -1114,6 +1166,19 @@ function Block({ block, token, settings, onUpdated, onAddAfter, onDeleted, conti
         >
           <Plus size={14} />
         </button>
+        {block.isEdited ? (
+          <button
+            type="button"
+            className="icon-button"
+            onClick={(event) => {
+              event.stopPropagation();
+              revertBlock();
+            }}
+            title="수정 전으로 되돌리기"
+          >
+            <RotateCcw size={13} />
+          </button>
+        ) : null}
         <button
           type="button"
           className="icon-button danger"
@@ -1162,6 +1227,7 @@ function Editor({ projectId, token }) {
   const [blocks, setBlocks] = useState([]);
   const [settings, setSettings] = useState(null);
   const [addAfterBlockId, setAddAfterBlockId] = useState(undefined);
+  const [selectedBlockId, setSelectedBlockId] = useState("");
   const [trashBlocks, setTrashBlocks] = useState([]);
   const [trashOpen, setTrashOpen] = useState(false);
   const [state, setState] = useState("loading");
@@ -1211,6 +1277,7 @@ function Editor({ projectId, token }) {
       headers: { Authorization: `Bearer ${token}` },
     });
     setBlocks((current) => current.filter((block) => block.id !== blockId));
+    if (selectedBlockId === blockId) setSelectedBlockId("");
     if (trashOpen) loadTrash();
   }
 
@@ -1332,6 +1399,9 @@ function Editor({ projectId, token }) {
                 onUpdated={updateBlock}
                 onAddAfter={setAddAfterBlockId}
                 onDeleted={deleteBlock}
+                onReverted={updateBlock}
+                isSelected={selectedBlockId === block.id}
+                onSelected={setSelectedBlockId}
                 continuationSpeakerName={continuationSpeakerAt(block, index)}
               />
               {addAfterBlockId === block.id ? (

@@ -33,6 +33,13 @@ const createBlockSchema = z.object({
   textContent: z.string().trim().min(1),
 });
 
+function stripSpeakerPrefix(text, speakerName) {
+  const textValue = String(text || "").trim();
+  const speaker = String(speakerName || "").trim();
+  if (!speaker || !textValue.startsWith(speaker)) return textValue;
+  return textValue.slice(speaker.length).replace(/^\s*[:：>\-\s]*/, "").trimStart();
+}
+
 async function computeInsertOrderIndex(projectId, afterBlockId) {
   if (!afterBlockId) {
     const first = await prisma.messageBlock.findFirst({
@@ -145,6 +152,35 @@ router.patch(
         rawHtml,
         textContent,
         isEdited: true,
+      },
+    });
+
+    res.json(updated);
+  })
+);
+
+router.post(
+  "/:projectId/blocks/:blockId/revert",
+  requireShareToken,
+  asyncHandler(async (req, res) => {
+    const block = await prisma.messageBlock.findFirst({
+      where: {
+        id: req.params.blockId,
+        projectId: req.params.projectId,
+        isDeleted: false,
+      },
+    });
+
+    if (!block) return res.status(404).json({ error: "Block not found." });
+
+    const restoredText = stripSpeakerPrefix(block.originalText, block.speakerName);
+    const rawHtml = replaceTextPreservingMarkup(block.rawHtml, restoredText);
+    const updated = await prisma.messageBlock.update({
+      where: { id: block.id },
+      data: {
+        rawHtml,
+        textContent: textFromHtml(rawHtml),
+        isEdited: false,
       },
     });
 

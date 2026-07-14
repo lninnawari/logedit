@@ -335,8 +335,13 @@ textarea:focus,
   border-left-color: #95c9b1;
 }
 
+.log-block.selected {
+  background: #eef6f2;
+  border-left-color: #74b79a;
+}
+
 .log-block.editing {
-  background: #fffaf0;
+  background: transparent;
   border-left-color: #c98b36;
 }
 
@@ -348,18 +353,20 @@ textarea:focus,
   display: none;
   gap: 4px;
   position: absolute;
-  right: -58px;
+  right: -112px;
   top: 50%;
   transform: translateY(-50%);
   z-index: 1;
 }
 
 .block-quick-actions .icon-button {
-  height: 24px;
-  width: 24px;
+  height: 25px;
+  width: 25px;
 }
 
-.log-block:hover .block-quick-actions {
+.log-block:hover .block-quick-actions,
+.log-block.selected .block-quick-actions,
+.log-block:focus-within .block-quick-actions {
   display: flex;
 }
 
@@ -583,9 +590,13 @@ textarea:focus,
 }
 
 .rendered-html .editing-part {
-  background: #fff3b0;
-  box-shadow: inset 0 -2px 0 #c98b36;
+  background: transparent;
+  box-shadow: none;
   outline: none;
+  text-decoration: underline;
+  text-decoration-color: #c98b36;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
 }
 
 .rendered-html .message.desc :where(.content > a, > a) {
@@ -612,8 +623,11 @@ textarea:focus,
 
 .editable-surface[contenteditable="true"] {
   cursor: text;
-  outline: 2px solid rgba(201, 139, 54, 0.35);
-  outline-offset: 2px;
+  outline: none;
+  text-decoration: underline;
+  text-decoration-color: #c98b36;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
 }
 
 .block-status {
@@ -940,6 +954,10 @@ textarea {
     right: 4px;
     top: 2px;
     transform: none;
+  }
+
+  .log-block.selected {
+    padding-right: 118px;
   }
 
   .panel-header-actions {
