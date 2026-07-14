@@ -114,6 +114,12 @@ router.get(
   "/:projectId/blocks",
   requireShareToken,
   asyncHandler(async (req, res) => {
+    const project = await prisma.project.findUnique({
+      where: { id: req.params.projectId },
+      select: { id: true, title: true, updatedAt: true },
+    });
+    if (!project) return res.status(404).json({ error: "Project not found." });
+
     const blocks = await prisma.messageBlock.findMany({
       where: { projectId: req.params.projectId, isDeleted: false },
       orderBy: { orderIndex: "asc" },
@@ -122,7 +128,7 @@ router.get(
       where: { projectId: req.params.projectId },
     });
 
-    res.json({ blocks, settings });
+    res.json({ project, blocks, settings });
   })
 );
 

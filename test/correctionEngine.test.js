@@ -36,15 +36,15 @@ test("applies corrections to sorted blocks", () => {
     {}
   );
 
-  assert.equal(result, "민수\t안녕\n\n“응…”\n\n★ 지도\n");
+  assert.equal(result, "민수\t안녕\n\n“응…”\n\n★ 이미지/핸드아웃 [지도]\n");
 });
 
 test("formats handouts with a custom icon", () => {
-  assert.equal(formatHandoutText("지도", "■"), "■ 지도");
+  assert.equal(formatHandoutText("지도", "■"), "■ 이미지/핸드아웃 [지도]");
   assert.equal(
     applyCorrections([{ orderIndex: 0, textContent: "캐릭터 이미지", blockType: "handout" }], {
       customHandoutIcon: "▣",
     }),
-    "▣ 캐릭터 이미지\n"
+    "▣ 이미지/핸드아웃 [캐릭터 이미지]\n"
   );
 });

@@ -729,6 +729,10 @@ function formatDateTime(value) {
   }).format(new Date(value));
 }
 
+function countTextCharacters(blocks) {
+  return blocks.reduce((sum, block) => sum + Array.from(String(block.textContent || "")).length, 0);
+}
+
 function AdminHome() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
@@ -823,7 +827,8 @@ function AdminHome() {
 }
 
 function formatHandoutText(block, settings) {
-  return `${settings?.customHandoutIcon || "★"} ${block.textContent || "이미지/핸드아웃 위치"}`;
+  const label = String(block.textContent || "이미지/핸드아웃").trim();
+  return `${settings?.customHandoutIcon || "★"} 이미지/핸드아웃 [${label}]`;
 }
 
 function handoutInlineStyle(block) {
@@ -1250,6 +1255,7 @@ function Block({
 
 function Editor({ projectId, token }) {
   const [blocks, setBlocks] = useState([]);
+  const [project, setProject] = useState(null);
   const [settings, setSettings] = useState(null);
   const [addAfterBlockId, setAddAfterBlockId] = useState(undefined);
   const [selectedBlockId, setSelectedBlockId] = useState("");
@@ -1266,6 +1272,7 @@ function Editor({ projectId, token }) {
       const data = await api(`/api/share/${projectId}/blocks`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+      setProject(data.project || null);
       setBlocks(data.blocks);
       setSettings(data.settings);
       setState("ready");
@@ -1388,8 +1395,10 @@ function Editor({ projectId, token }) {
     <main className="editor-shell">
       <header className="topbar">
         <div>
-          <h1>로그 편집</h1>
-          <p>{blocks.length.toLocaleString()} blocks</p>
+          <h1>{project?.title || "로그 편집"}</h1>
+          <p>
+            {blocks.length.toLocaleString()} blocks · {countTextCharacters(blocks).toLocaleString()}자
+          </p>
         </div>
         <button className="icon-button" onClick={loadBlocks} title="새로고침">
           <RefreshCw size={18} />

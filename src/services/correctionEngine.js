@@ -26,8 +26,8 @@ function cleanBlankLinesText(text) {
 }
 
 function formatHandoutText(description, icon = "★") {
-  const label = String(description || "이미지/핸드아웃 위치").trim();
-  return `${icon || "★"} ${label}`;
+  const label = String(description || "이미지/핸드아웃").trim();
+  return `${icon || "★"} 이미지/핸드아웃 [${label}]`;
 }
 
 function blockToText(block, settings) {
