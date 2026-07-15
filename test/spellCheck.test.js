@@ -1,7 +1,7 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
 
-const { checkChunk, collectKoreanTokens, normalizeSuggestions } = require("../src/services/spellCheck");
+const { checkChunk, collectKoreanTokens, fastSuggestions, normalizeSuggestions } = require("../src/services/spellCheck");
 const { isRollResultBlock, remapOffsetsToBlocks, splitIntoChunks } = require("../src/services/spellCheckJobs");
 
 test("collects Korean token offsets", () => {
@@ -13,6 +13,12 @@ test("collects Korean token offsets", () => {
 
 test("normalizes Hunspell suggestions", () => {
   assert.deepEqual(normalizeSuggestions("됬다", ["됐다", "됐다", "됬다", "되었다"]), ["됐다", "되었다"]);
+});
+
+test("builds fast Korean typo suggestions without Hunspell suggest", () => {
+  assert.deepEqual(fastSuggestions("작성됬다"), ["작성됐다"]);
+  assert.deepEqual(fastSuggestions("안녕하세여"), ["안녕하세요"]);
+  assert.deepEqual(fastSuggestions("맛춤법"), ["맞춤법"]);
 });
 
 test("checks Korean text with Hunspell dictionary", async () => {

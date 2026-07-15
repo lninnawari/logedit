@@ -1,7 +1,7 @@
 const { randomUUID } = require("node:crypto");
 
 const { replaceTextPreservingMarkup } = require("./htmlEditor");
-const { checkChunk } = require("./spellCheck");
+const { checkChunk, createSuggestionBudget } = require("./spellCheck");
 
 const jobs = new Map();
 const finishedJobTtlMs = 30 * 60 * 1000;
@@ -118,10 +118,11 @@ function cleanupJobs() {
 async function processChunks(jobId, chunks) {
   const job = jobs.get(jobId);
   if (!job) return;
+  const suggestionBudget = createSuggestionBudget();
 
   for (const chunk of chunks) {
     try {
-      const issues = await checkChunk(chunk.text);
+      const issues = await checkChunk(chunk.text, { suggestionBudget });
       job.results.push(...remapOffsetsToBlocks(issues, chunk));
     } catch (error) {
       job.failures.push({
