@@ -45,7 +45,7 @@ function splitBlockText(block, maxChars) {
   return segments;
 }
 
-function splitIntoChunks(blocks, maxChars = 2000) {
+function splitIntoChunks(blocks, maxChars = 500) {
   const chunks = [];
   let current = { blocks: [], text: "" };
 

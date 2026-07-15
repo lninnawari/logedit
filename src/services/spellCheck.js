@@ -3,6 +3,12 @@ const path = require("node:path");
 let spellPromise = null;
 const tokenCache = new Map();
 const maxTokenCacheSize = 10000;
+const maxSuggestTokenLength = 30;
+const tokensPerYield = 10;
+
+function yieldToEventLoop() {
+  return new Promise((resolve) => setImmediate(resolve));
+}
 
 function dictionaryPath(filename) {
   return path.join(process.cwd(), "node_modules", "dictionary-ko", filename);
@@ -57,6 +63,7 @@ function checkToken(spell, word) {
   if (cached) return cached;
 
   if (spell.spellSync(word)) return rememberTokenResult(word, { correct: true, candidates: [] });
+  if (word.length > maxSuggestTokenLength) return rememberTokenResult(word, { correct: false, candidates: [] });
 
   return rememberTokenResult(word, {
     correct: false,
@@ -69,21 +76,26 @@ async function checkChunk(text) {
   if (!originalText.trim()) return [];
 
   const spell = await getSpellChecker();
-  return collectKoreanTokens(originalText).flatMap((token) => {
-    const { correct, candidates } = checkToken(spell, token.value);
-    if (correct) return [];
-    if (candidates.length === 0) return [];
+  const issues = [];
+  const tokens = collectKoreanTokens(originalText);
 
-    return [
-      {
-        start: token.start,
-        end: token.end,
-        original: token.value,
-        candidates,
-        help: "Hunspell 한국어 사전 제안",
-      },
-    ];
-  });
+  for (let index = 0; index < tokens.length; index += 1) {
+    if (index > 0 && index % tokensPerYield === 0) await yieldToEventLoop();
+
+    const token = tokens[index];
+    const { correct, candidates } = checkToken(spell, token.value);
+    if (correct || candidates.length === 0) continue;
+
+    issues.push({
+      start: token.start,
+      end: token.end,
+      original: token.value,
+      candidates,
+      help: "Hunspell 한국어 사전 제안",
+    });
+  }
+
+  return issues;
 }
 
 module.exports = {
@@ -92,4 +104,5 @@ module.exports = {
   collectKoreanTokens,
   getSpellChecker,
   normalizeSuggestions,
+  yieldToEventLoop,
 };
