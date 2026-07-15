@@ -1,7 +1,13 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
 
-const { checkChunk, collectKoreanTokens, fastSuggestions, normalizeSuggestions } = require("../src/services/spellCheck");
+const {
+  checkChunk,
+  collectKoreanTokens,
+  collectSpacingIssues,
+  fastSuggestions,
+  normalizeSuggestions,
+} = require("../src/services/spellCheck");
 const { isRollResultBlock, remapOffsetsToBlocks, splitIntoChunks } = require("../src/services/spellCheckJobs");
 
 test("collects Korean token offsets", () => {
@@ -19,6 +25,20 @@ test("builds fast Korean typo suggestions without Hunspell suggest", () => {
   assert.deepEqual(fastSuggestions("작성됬다"), ["작성됐다"]);
   assert.deepEqual(fastSuggestions("안녕하세여"), ["안녕하세요"]);
   assert.deepEqual(fastSuggestions("맛춤법"), ["맞춤법"]);
+});
+
+test("collects common Korean spacing issues", () => {
+  const issues = collectSpacingIssues("아닐텐데 할수있다 그럴것같다 없을테니까");
+
+  assert.deepEqual(
+    issues.map((issue) => [issue.original, issue.candidates[0]]),
+    [
+      ["아닐텐데", "아닐 텐데"],
+      ["할수있다", "할 수 있다"],
+      ["그럴것같다", "그럴 것 같다"],
+      ["없을테니까", "없을 테니까"],
+    ]
+  );
 });
 
 test("checks Korean text with Hunspell dictionary", async () => {

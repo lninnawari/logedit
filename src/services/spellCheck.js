@@ -73,6 +73,55 @@ function fastSuggestions(word) {
   return normalizeSuggestions(word, suggestions);
 }
 
+const spacingRules = [
+  {
+    pattern: /[가-힣]+텐데/g,
+    replacement: (word) => word.replace(/텐데$/, " 텐데"),
+  },
+  {
+    pattern: /[가-힣]+테니까/g,
+    replacement: (word) => word.replace(/테니까$/, " 테니까"),
+  },
+  {
+    pattern: /[가-힣]+수(?:있|없)[가-힣]*/g,
+    replacement: (word) => word.replace("수있", " 수 있").replace("수없", " 수 없"),
+  },
+  {
+    pattern: /[가-힣]+것같[가-힣]*/g,
+    replacement: (word) => word.replace("것같", " 것 같"),
+  },
+  {
+    pattern: /[가-힣]+거같[가-힣]*/g,
+    replacement: (word) => word.replace("거같", " 거 같"),
+  },
+];
+
+function collectSpacingIssues(text) {
+  const issues = [];
+
+  for (const rule of spacingRules) {
+    rule.pattern.lastIndex = 0;
+    let match = rule.pattern.exec(text);
+
+    while (match) {
+      const original = match[0];
+      const replacement = rule.replacement(original);
+      if (replacement !== original) {
+        issues.push({
+          start: match.index,
+          end: match.index + original.length,
+          original,
+          candidates: [replacement],
+          help: "띄어쓰기 후보",
+        });
+      }
+      match = rule.pattern.exec(text);
+    }
+  }
+
+  return issues.sort((a, b) => a.start - b.start || a.end - b.end);
+}
+
 function rememberTokenResult(word, result) {
   if (tokenCache.size >= maxTokenCacheSize) {
     tokenCache.delete(tokenCache.keys().next().value);
@@ -111,7 +160,7 @@ async function checkChunk(text, options = {}) {
   if (!originalText.trim()) return [];
 
   const spell = await getSpellChecker();
-  const issues = [];
+  const issues = collectSpacingIssues(originalText);
   const tokens = collectKoreanTokens(originalText);
   const suggestionBudget = options.suggestionBudget || createSuggestionBudget();
 
@@ -138,6 +187,7 @@ module.exports = {
   checkChunk,
   checkToken,
   collectKoreanTokens,
+  collectSpacingIssues,
   createSuggestionBudget,
   fastSuggestions,
   getSpellChecker,
