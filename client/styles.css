@@ -868,6 +868,31 @@ textarea {
   gap: 6px;
 }
 
+.replace-summary {
+  align-items: baseline;
+  background: #f6faf8;
+  border: 1px solid #dce7e1;
+  border-radius: 8px;
+  color: #50645d;
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px;
+}
+
+.replace-summary strong {
+  color: #245b4f;
+  font-size: 18px;
+}
+
+.replace-summary span {
+  font-size: 13px;
+}
+
+.replace-preview-list {
+  display: grid;
+  gap: 8px;
+}
+
 .spellcheck-check {
   align-items: center;
   color: #50645d;

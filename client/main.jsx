@@ -1172,8 +1172,7 @@ function SpellCheckDialog({ issues, failures, blocks, isApplying, onApply, onClo
 function FindReplaceDialog({ blocks, isApplying, onApply, onClose }) {
   const [findText, setFindText] = useState("");
   const [replaceText, setReplaceText] = useState("");
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const searchableBlocks = blocks.filter((block) => block.blockType !== "handout");
+  const searchableBlocks = useMemo(() => blocks.filter((block) => block.blockType !== "handout"), [blocks]);
   const matches = useMemo(() => {
     if (!findText) return [];
     return searchableBlocks.flatMap((block) => {
@@ -1187,12 +1186,9 @@ function FindReplaceDialog({ blocks, isApplying, onApply, onClose }) {
       return found;
     });
   }, [findText, searchableBlocks]);
-
-  useEffect(() => {
-    setCurrentIndex(0);
-  }, [findText]);
-
-  const activeMatch = matches[currentIndex] || null;
+  const matchedBlockCount = useMemo(() => new Set(matches.map((match) => match.block.id)).size, [matches]);
+  const sampleMatches = matches.slice(0, 3);
+  const canReplaceAll = findText.length > 0 && matches.length > 0 && findText !== replaceText && !isApplying;
 
   function matchToChange(match) {
     return {
@@ -1204,14 +1200,8 @@ function FindReplaceDialog({ blocks, isApplying, onApply, onClose }) {
     };
   }
 
-  async function replaceCurrent() {
-    if (!activeMatch) return;
-    await onApply([matchToChange(activeMatch)], { closeOnDone: false });
-    setCurrentIndex((value) => Math.min(value, Math.max(matches.length - 2, 0)));
-  }
-
   async function replaceAll() {
-    if (matches.length === 0) return;
+    if (!canReplaceAll) return;
     await onApply(matches.map(matchToChange), { closeOnDone: false });
     onClose();
   }
@@ -1223,10 +1213,8 @@ function FindReplaceDialog({ blocks, isApplying, onApply, onClose }) {
           <X size={16} />
         </button>
         <header>
-          <h2>찾기/바꾸기</h2>
-          <p>
-            {matches.length.toLocaleString()}개 발견 · {matches.length ? currentIndex + 1 : 0} / {matches.length.toLocaleString()}
-          </p>
+          <h2>전체 찾기/바꾸기</h2>
+          <p>로그 전체에서 찾은 단어를 한 번에 바꿉니다.</p>
         </header>
         <label>
           찾기
@@ -1236,28 +1224,29 @@ function FindReplaceDialog({ blocks, isApplying, onApply, onClose }) {
           바꾸기
           <input value={replaceText} onChange={(event) => setReplaceText(event.target.value)} />
         </label>
-        {activeMatch ? <p className="spellcheck-context">{activeMatch.block.textContent}</p> : null}
+        <div className="replace-summary">
+          <strong>{matches.length.toLocaleString()}개</strong>
+          <span>{matchedBlockCount.toLocaleString()}개 블록에서 발견</span>
+        </div>
+        {findText && findText === replaceText ? <p className="error-text">찾을 단어와 바꿀 단어가 같습니다.</p> : null}
+        {sampleMatches.length > 0 ? (
+          <div className="replace-preview-list">
+            {sampleMatches.map((match) => (
+              <p className="spellcheck-context" key={`${match.block.id}-${match.start}`}>
+                {match.block.textContent}
+              </p>
+            ))}
+          </div>
+        ) : findText ? (
+          <div className="spellcheck-empty">일치하는 단어가 없습니다.</div>
+        ) : null}
         <footer className="spellcheck-footer">
           <button type="button" className="secondary" onClick={onClose}>
             닫기
           </button>
-          <button type="button" className="secondary" onClick={() => setCurrentIndex((value) => Math.max(value - 1, 0))} disabled={currentIndex === 0}>
-            이전
-          </button>
-          <button
-            type="button"
-            className="secondary"
-            onClick={() => setCurrentIndex((value) => Math.min(value + 1, matches.length - 1))}
-            disabled={!activeMatch || currentIndex >= matches.length - 1}
-          >
-            다음
-          </button>
-          <button type="button" className="secondary" onClick={replaceAll} disabled={isApplying || matches.length === 0}>
-            모두 바꾸기
-          </button>
-          <button type="button" className="primary-button" onClick={replaceCurrent} disabled={isApplying || !activeMatch}>
+          <button type="button" className="primary-button" onClick={replaceAll} disabled={!canReplaceAll}>
             {isApplying ? <Loader2 className="spin" size={16} /> : <Check size={16} />}
-            바꾸기
+            전체 바꾸기
           </button>
         </footer>
       </section>

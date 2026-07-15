@@ -75,7 +75,7 @@ const applySpellCheckSchema = z.object({
         replacement: z.string(),
       })
     )
-    .max(500),
+    .max(100000),
 });
 
 router.use(requireAdmin);
