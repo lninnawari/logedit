@@ -7,9 +7,10 @@ const {
   collectSpacingIssues,
   fastSuggestions,
   normalizeSuggestions,
+  shouldListSuspiciousWord,
   suggestWord,
 } = require("../src/services/spellCheck");
-const { isRollResultBlock, remapOffsetsToBlocks, splitIntoChunks } = require("../src/services/spellCheckJobs");
+const { dedupeIssues, isRollResultBlock, remapOffsetsToBlocks, splitIntoChunks } = require("../src/services/spellCheckJobs");
 
 test("collects Korean token offsets", () => {
   assert.deepEqual(collectKoreanTokens("GM: 안녕 하세요 123"), [
@@ -62,10 +63,30 @@ test("keeps suspicious words even when no fast suggestion exists", async () => {
   assert.deepEqual(issues[0].candidates, []);
 });
 
+test("filters very short suspicious words without suggestions", () => {
+  assert.equal(shouldListSuspiciousWord("가", []), false);
+  assert.equal(shouldListSuspiciousWord("가나", []), false);
+  assert.equal(shouldListSuspiciousWord("가나다", []), true);
+  assert.equal(shouldListSuspiciousWord("가", ["나"]), true);
+});
+
 test("fetches expensive suggestions on demand", async () => {
   const candidates = await suggestWord("퀘스쳔");
 
   assert.ok(candidates.includes("크리스천"));
+});
+
+test("deduplicates repeated spellcheck issues", () => {
+  const issues = dedupeIssues([
+    { original: "퀘스쳔", candidates: [], help: "빠른 맞춤법 후보", blockId: "a", start: 0, end: 3 },
+    { original: "퀘스쳔", candidates: [], help: "빠른 맞춤법 후보", blockId: "b", start: 0, end: 3 },
+    { original: "맛춤법", candidates: ["맞춤법"], help: "빠른 맞춤법 후보", blockId: "c", start: 0, end: 3 },
+  ]);
+
+  assert.deepEqual(
+    issues.map((issue) => issue.original),
+    ["퀘스쳔", "맛춤법"]
+  );
 });
 
 test("splits chunks without splitting blocks", () => {

@@ -7,6 +7,7 @@ const maxSuggestTokenLength = 30;
 const tokensPerYield = 10;
 const defaultSuggestionLimit = 300;
 const enableExpensiveSuggestions = process.env.HUNSPELL_SUGGEST === "true";
+const minSuspiciousTokenLength = 3;
 
 function yieldToEventLoop() {
   return new Promise((resolve) => setImmediate(resolve));
@@ -169,6 +170,10 @@ function overlapsAnyIssue(token, issues) {
   return issues.some((issue) => token.start < issue.end && token.end > issue.start);
 }
 
+function shouldListSuspiciousWord(word, candidates) {
+  return candidates.length > 0 || word.length >= minSuspiciousTokenLength;
+}
+
 async function checkChunk(text, options = {}) {
   const originalText = String(text || "");
   if (!originalText.trim()) return [];
@@ -186,6 +191,7 @@ async function checkChunk(text, options = {}) {
 
     const { correct, candidates } = checkToken(spell, token.value, { suggestionBudget });
     if (correct) continue;
+    if (!shouldListSuspiciousWord(token.value, candidates)) continue;
 
     issues.push({
       start: token.start,
@@ -208,6 +214,7 @@ module.exports = {
   fastSuggestions,
   getSpellChecker,
   normalizeSuggestions,
+  shouldListSuspiciousWord,
   suggestWord,
   yieldToEventLoop,
 };

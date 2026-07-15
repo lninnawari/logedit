@@ -108,6 +108,16 @@ function remapOffsetsToBlocks(issues, chunk) {
   });
 }
 
+function dedupeIssues(issues) {
+  const seen = new Set();
+  return issues.filter((issue) => {
+    const key = [issue.original, issue.help, ...(issue.candidates || [])].join("\u0000");
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 function cleanupJobs() {
   const now = Date.now();
   for (const [jobId, job] of jobs) {
@@ -178,7 +188,7 @@ function getSpellCheckJob(projectId, jobId) {
     status: job.status,
     total: job.total,
     completed: job.completed,
-    results: job.status === "done" ? job.results : [],
+    results: job.status === "done" ? dedupeIssues(job.results) : [],
     failures: job.status === "done" ? job.failures : [],
   };
 }
@@ -241,6 +251,7 @@ module.exports = {
   applySpellCheckChanges,
   getSpellCheckJob,
   isRollResultBlock,
+  dedupeIssues,
   remapOffsetsToBlocks,
   splitIntoChunks,
   startSpellCheckJob,
