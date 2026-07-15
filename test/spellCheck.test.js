@@ -10,7 +10,7 @@ const {
   shouldListSuspiciousWord,
   suggestWord,
 } = require("../src/services/spellCheck");
-const { dedupeIssues, isRollResultBlock, remapOffsetsToBlocks, splitIntoChunks } = require("../src/services/spellCheckJobs");
+const { groupIssues, isRollResultBlock, remapOffsetsToBlocks, splitIntoChunks } = require("../src/services/spellCheckJobs");
 
 test("collects Korean token offsets", () => {
   assert.deepEqual(collectKoreanTokens("GM: 안녕 하세요 123"), [
@@ -76,8 +76,8 @@ test("fetches expensive suggestions on demand", async () => {
   assert.ok(candidates.includes("크리스천"));
 });
 
-test("deduplicates repeated spellcheck issues", () => {
-  const issues = dedupeIssues([
+test("groups repeated spellcheck issues with occurrences", () => {
+  const issues = groupIssues([
     { original: "퀘스쳔", candidates: [], help: "빠른 맞춤법 후보", blockId: "a", start: 0, end: 3 },
     { original: "퀘스쳔", candidates: [], help: "빠른 맞춤법 후보", blockId: "b", start: 0, end: 3 },
     { original: "맛춤법", candidates: ["맞춤법"], help: "빠른 맞춤법 후보", blockId: "c", start: 0, end: 3 },
@@ -86,6 +86,11 @@ test("deduplicates repeated spellcheck issues", () => {
   assert.deepEqual(
     issues.map((issue) => issue.original),
     ["퀘스쳔", "맛춤법"]
+  );
+  assert.equal(issues[0].occurrenceCount, 2);
+  assert.deepEqual(
+    issues[0].occurrences.map((issue) => issue.blockId),
+    ["a", "b"]
   );
 });
 

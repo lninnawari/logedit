@@ -108,14 +108,35 @@ function remapOffsetsToBlocks(issues, chunk) {
   });
 }
 
-function dedupeIssues(issues) {
-  const seen = new Set();
-  return issues.filter((issue) => {
+function groupIssues(issues) {
+  const grouped = new Map();
+
+  for (const issue of issues) {
     const key = [issue.original, issue.help, ...(issue.candidates || [])].join("\u0000");
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
+    const occurrence = {
+      id: issue.id,
+      blockId: issue.blockId,
+      start: issue.start,
+      end: issue.end,
+      original: issue.original,
+      candidates: issue.candidates,
+      help: issue.help,
+    };
+
+    if (!grouped.has(key)) {
+      grouped.set(key, {
+        ...occurrence,
+        occurrenceCount: 0,
+        occurrences: [],
+      });
+    }
+
+    const group = grouped.get(key);
+    group.occurrenceCount += 1;
+    group.occurrences.push(occurrence);
+  }
+
+  return [...grouped.values()];
 }
 
 function cleanupJobs() {
@@ -188,7 +209,7 @@ function getSpellCheckJob(projectId, jobId) {
     status: job.status,
     total: job.total,
     completed: job.completed,
-    results: job.status === "done" ? dedupeIssues(job.results) : [],
+    results: job.status === "done" ? groupIssues(job.results) : [],
     failures: job.status === "done" ? job.failures : [],
   };
 }
@@ -251,7 +272,7 @@ module.exports = {
   applySpellCheckChanges,
   getSpellCheckJob,
   isRollResultBlock,
-  dedupeIssues,
+  groupIssues,
   remapOffsetsToBlocks,
   splitIntoChunks,
   startSpellCheckJob,

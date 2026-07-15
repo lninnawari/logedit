@@ -1027,6 +1027,10 @@ function issueToChange(issue, replacement) {
   };
 }
 
+function issueToChanges(issue, replacement) {
+  return (issue.occurrences?.length ? issue.occurrences : [issue]).map((occurrence) => issueToChange(occurrence, replacement));
+}
+
 function SpellCheckDialog({ issues, failures, blocks, isApplying, onApply, onClose, onSuggest }) {
   const [replacements, setReplacements] = useState({});
   const [resolvedIds, setResolvedIds] = useState({});
@@ -1081,7 +1085,7 @@ function SpellCheckDialog({ issues, failures, blocks, isApplying, onApply, onClo
     if (!activeIssue) return;
     const replacement = issueReplacement(activeIssue, replacements);
     if (replacement === activeIssue.original) return;
-    await onApply([issueToChange(activeIssue, replacement)], { closeOnDone: false });
+    await onApply(issueToChanges(activeIssue, replacement), { closeOnDone: false });
     resolveIssues([activeIssue]);
   }
 
@@ -1093,7 +1097,7 @@ function SpellCheckDialog({ issues, failures, blocks, isApplying, onApply, onClo
       (issue) => issue.original === activeIssue.original && issueReplacement(issue, replacements) === replacement
     );
     await onApply(
-      sameIssues.map((issue) => issueToChange(issue, replacement)),
+      sameIssues.flatMap((issue) => issueToChanges(issue, replacement)),
       { closeOnDone: false }
     );
     resolveIssues(sameIssues);
@@ -1114,6 +1118,7 @@ function SpellCheckDialog({ issues, failures, blocks, isApplying, onApply, onClo
   const activeBlock = activeIssue ? blockMap.get(activeIssue.blockId) : null;
   const activeReplacement = activeIssue ? issueReplacement(activeIssue, replacements) : "";
   const activeCandidates = activeIssue?.candidates || [];
+  const activeOccurrenceCount = activeIssue?.occurrenceCount || activeIssue?.occurrences?.length || (activeIssue ? 1 : 0);
   const sameCount = activeIssue
     ? visibleIssues.filter((issue) => issue.original === activeIssue.original && issueReplacement(issue, replacements) === activeReplacement)
         .length
@@ -1128,7 +1133,7 @@ function SpellCheckDialog({ issues, failures, blocks, isApplying, onApply, onClo
         <header>
           <h2>맞춤법 검사</h2>
           <p>
-            {issues.length.toLocaleString()}개 후보 · {Math.min(currentIndex + 1, visibleIssues.length).toLocaleString()} /{" "}
+            {issues.length.toLocaleString()}개 후보 그룹 · {Math.min(currentIndex + 1, visibleIssues.length).toLocaleString()} /{" "}
             {visibleIssues.length.toLocaleString()}
           </p>
         </header>
@@ -1170,7 +1175,8 @@ function SpellCheckDialog({ issues, failures, blocks, isApplying, onApply, onClo
               </div>
             ) : null}
             {activeBlock ? <p className="spellcheck-context">{activeBlock.textContent}</p> : null}
-            {sameCount > 1 ? <p className="muted-text">같은 제안 {sameCount.toLocaleString()}개</p> : null}
+            {activeOccurrenceCount > 1 ? <p className="muted-text">이 표현은 총 {activeOccurrenceCount.toLocaleString()}곳에서 발견되었습니다.</p> : null}
+            {sameCount > 1 ? <p className="muted-text">같은 원문 그룹 {sameCount.toLocaleString()}개</p> : null}
           </article>
         ) : (
           <div className="spellcheck-empty">검사를 모두 확인했습니다.</div>
