@@ -926,9 +926,18 @@ textarea {
   overflow-wrap: anywhere;
 }
 
-.spellcheck-row select {
-  height: 34px;
+.spellcheck-row select,
+.spellcheck-row input {
+  font-size: 14px;
+  line-height: 1.5;
+  min-height: 42px;
   min-width: 0;
+  padding-bottom: 8px;
+  padding-top: 8px;
+}
+
+.spellcheck-suggest-button {
+  justify-self: start;
 }
 
 .spellcheck-help {

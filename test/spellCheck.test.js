@@ -7,6 +7,7 @@ const {
   collectSpacingIssues,
   fastSuggestions,
   normalizeSuggestions,
+  suggestWord,
 } = require("../src/services/spellCheck");
 const { isRollResultBlock, remapOffsetsToBlocks, splitIntoChunks } = require("../src/services/spellCheckJobs");
 
@@ -51,6 +52,20 @@ test("checks Korean text with Hunspell dictionary", async () => {
   assert.ok(issues[0].candidates.includes("작성됐다"));
   assert.ok(issues[1].candidates.includes("안녕하세요"));
   assert.ok(issues[2].candidates.includes("맞춤법"));
+});
+
+test("keeps suspicious words even when no fast suggestion exists", async () => {
+  const issues = await checkChunk("퀘스쳔");
+
+  assert.equal(issues.length, 1);
+  assert.equal(issues[0].original, "퀘스쳔");
+  assert.deepEqual(issues[0].candidates, []);
+});
+
+test("fetches expensive suggestions on demand", async () => {
+  const candidates = await suggestWord("퀘스쳔");
+
+  assert.ok(candidates.includes("크리스천"));
 });
 
 test("splits chunks without splitting blocks", () => {

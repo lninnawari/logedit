@@ -1014,7 +1014,7 @@ function AddBlockForm({ onSubmit, onCancel }) {
 }
 
 function issueReplacement(issue, replacements) {
-  return replacements[issue.id] ?? issue.candidates[0] ?? "";
+  return replacements[issue.id] ?? issue.candidates[0] ?? issue.original;
 }
 
 function issueToChange(issue, replacement) {
@@ -1027,12 +1027,22 @@ function issueToChange(issue, replacement) {
   };
 }
 
-function SpellCheckDialog({ issues, failures, blocks, isApplying, onApply, onClose }) {
+function SpellCheckDialog({ issues, failures, blocks, isApplying, onApply, onClose, onSuggest }) {
   const [replacements, setReplacements] = useState({});
   const [resolvedIds, setResolvedIds] = useState({});
+  const [suggestionsById, setSuggestionsById] = useState({});
+  const [suggestingId, setSuggestingId] = useState("");
   const [currentIndex, setCurrentIndex] = useState(0);
   const blockMap = useMemo(() => new Map(blocks.map((block) => [block.id, block])), [blocks]);
-  const visibleIssues = issues.filter((issue) => !resolvedIds[issue.id]);
+  const enrichedIssues = useMemo(
+    () =>
+      issues.map((issue) => ({
+        ...issue,
+        candidates: suggestionsById[issue.id] || issue.candidates || [],
+      })),
+    [issues, suggestionsById]
+  );
+  const visibleIssues = enrichedIssues.filter((issue) => !resolvedIds[issue.id]);
   const activeIssue = visibleIssues[currentIndex] || visibleIssues[0] || null;
 
   useEffect(() => {
@@ -1042,6 +1052,7 @@ function SpellCheckDialog({ issues, failures, blocks, isApplying, onApply, onClo
     });
     setReplacements(nextReplacements);
     setResolvedIds({});
+    setSuggestionsById({});
     setCurrentIndex(0);
   }, [issues]);
 
@@ -1069,6 +1080,7 @@ function SpellCheckDialog({ issues, failures, blocks, isApplying, onApply, onClo
   async function applyCurrent() {
     if (!activeIssue) return;
     const replacement = issueReplacement(activeIssue, replacements);
+    if (replacement === activeIssue.original) return;
     await onApply([issueToChange(activeIssue, replacement)], { closeOnDone: false });
     resolveIssues([activeIssue]);
   }
@@ -1076,6 +1088,7 @@ function SpellCheckDialog({ issues, failures, blocks, isApplying, onApply, onClo
   async function applyAllSame() {
     if (!activeIssue) return;
     const replacement = issueReplacement(activeIssue, replacements);
+    if (replacement === activeIssue.original) return;
     const sameIssues = visibleIssues.filter(
       (issue) => issue.original === activeIssue.original && issueReplacement(issue, replacements) === replacement
     );
@@ -1086,8 +1099,21 @@ function SpellCheckDialog({ issues, failures, blocks, isApplying, onApply, onClo
     resolveIssues(sameIssues);
   }
 
+  async function requestSuggestion() {
+    if (!activeIssue || !onSuggest) return;
+    setSuggestingId(activeIssue.id);
+    try {
+      const candidates = await onSuggest(activeIssue.original);
+      setSuggestionsById((current) => ({ ...current, [activeIssue.id]: candidates }));
+      setReplacements((current) => ({ ...current, [activeIssue.id]: candidates[0] || activeIssue.original }));
+    } finally {
+      setSuggestingId("");
+    }
+  }
+
   const activeBlock = activeIssue ? blockMap.get(activeIssue.blockId) : null;
   const activeReplacement = activeIssue ? issueReplacement(activeIssue, replacements) : "";
+  const activeCandidates = activeIssue?.candidates || [];
   const sameCount = activeIssue
     ? visibleIssues.filter((issue) => issue.original === activeIssue.original && issueReplacement(issue, replacements) === activeReplacement)
         .length
@@ -1115,17 +1141,28 @@ function SpellCheckDialog({ issues, failures, blocks, isApplying, onApply, onClo
             </div>
             <label className="spellcheck-row">
               <span>바꿈</span>
-              <select
-                value={activeReplacement}
-                onChange={(event) => setReplacements((current) => ({ ...current, [activeIssue.id]: event.target.value }))}
-              >
-                {activeIssue.candidates.map((candidate) => (
-                  <option value={candidate} key={candidate}>
-                    {candidate || "(삭제)"}
-                  </option>
-                ))}
-              </select>
+              {activeCandidates.length > 0 ? (
+                <select
+                  value={activeReplacement}
+                  onChange={(event) => setReplacements((current) => ({ ...current, [activeIssue.id]: event.target.value }))}
+                >
+                  {activeCandidates.map((candidate) => (
+                    <option value={candidate} key={candidate}>
+                      {candidate || "(삭제)"}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  value={activeReplacement}
+                  onChange={(event) => setReplacements((current) => ({ ...current, [activeIssue.id]: event.target.value }))}
+                />
+              )}
             </label>
+            <button type="button" className="secondary spellcheck-suggest-button" onClick={requestSuggestion} disabled={suggestingId === activeIssue.id}>
+              {suggestingId === activeIssue.id ? <Loader2 className="spin" size={14} /> : null}
+              제안 받기
+            </button>
             {activeIssue.help ? (
               <div className="spellcheck-help">
                 <span>사유</span>
@@ -1156,10 +1193,15 @@ function SpellCheckDialog({ issues, failures, blocks, isApplying, onApply, onClo
           <button type="button" className="secondary" onClick={skipCurrent} disabled={!activeIssue || isApplying}>
             건너뛰기
           </button>
-          <button type="button" className="secondary" onClick={applyAllSame} disabled={!activeIssue || isApplying || sameCount < 2}>
+          <button
+            type="button"
+            className="secondary"
+            onClick={applyAllSame}
+            disabled={!activeIssue || isApplying || sameCount < 2 || activeReplacement === activeIssue.original}
+          >
             모두 바꾸기
           </button>
-          <button type="button" className="primary-button" onClick={applyCurrent} disabled={!activeIssue || isApplying}>
+          <button type="button" className="primary-button" onClick={applyCurrent} disabled={!activeIssue || isApplying || activeReplacement === activeIssue.original}>
             {isApplying ? <Loader2 className="spin" size={16} /> : <Check size={16} />}
             바꾸기
           </button>
@@ -1691,6 +1733,16 @@ function Editor({ projectId, token }) {
     }
   }
 
+  async function fetchSpellSuggestions(word) {
+    if (!adminToken) return [];
+    const result = await api(`/api/projects/${projectId}/spellcheck/suggest`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${adminToken}` },
+      body: JSON.stringify({ word }),
+    });
+    return result.candidates || [];
+  }
+
   function isContinuationBlock(block, previousBlock) {
     if (!previousBlock) return false;
     const speaker = blockSpeakerName(block);
@@ -1800,6 +1852,7 @@ function Editor({ projectId, token }) {
               blocks={blocks}
               isApplying={spellApplying}
               onApply={applySpellCheckChanges}
+              onSuggest={fetchSpellSuggestions}
               onClose={() => setSpellDialogOpen(false)}
             />
           ) : null}

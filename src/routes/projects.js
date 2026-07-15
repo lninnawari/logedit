@@ -17,6 +17,7 @@ const {
   getSpellCheckJob,
   startSpellCheckJob,
 } = require("../services/spellCheckJobs");
+const { suggestWord } = require("../services/spellCheck");
 
 const router = Router();
 const htmlUploadLimit = 30 * 1024 * 1024;
@@ -76,6 +77,10 @@ const applySpellCheckSchema = z.object({
       })
     )
     .max(100000),
+});
+
+const suggestSpellCheckSchema = z.object({
+  word: z.string().trim().min(1).max(60),
 });
 
 router.use(requireAdmin);
@@ -315,6 +320,21 @@ router.get(
     const job = getSpellCheckJob(req.params.id, req.params.jobId);
     if (!job) return res.status(404).json({ error: "Spellcheck job not found." });
     res.json(job);
+  })
+);
+
+router.post(
+  "/:id/spellcheck/suggest",
+  asyncHandler(async (req, res) => {
+    const project = await prisma.project.findUnique({
+      where: { id: req.params.id },
+      select: { id: true },
+    });
+    if (!project) return res.status(404).json({ error: "Project not found." });
+
+    const input = suggestSpellCheckSchema.parse(req.body);
+    const candidates = await suggestWord(input.word);
+    res.json({ word: input.word, candidates });
   })
 );
 

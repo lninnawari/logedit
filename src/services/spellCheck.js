@@ -155,6 +155,20 @@ function checkToken(spell, word, options = {}) {
   });
 }
 
+async function suggestWord(word) {
+  const normalizedWord = String(word || "").trim();
+  if (!normalizedWord || normalizedWord.length > maxSuggestTokenLength) return [];
+
+  const spell = await getSpellChecker();
+  const fast = fastSuggestions(normalizedWord).filter((candidate) => spell.spellSync(candidate));
+  const hunspell = spell.spellSync(normalizedWord) ? [] : normalizeSuggestions(normalizedWord, spell.suggestSync(normalizedWord));
+  return normalizeSuggestions(normalizedWord, [...fast, ...hunspell]);
+}
+
+function overlapsAnyIssue(token, issues) {
+  return issues.some((issue) => token.start < issue.end && token.end > issue.start);
+}
+
 async function checkChunk(text, options = {}) {
   const originalText = String(text || "");
   if (!originalText.trim()) return [];
@@ -168,8 +182,10 @@ async function checkChunk(text, options = {}) {
     if (index > 0 && index % tokensPerYield === 0) await yieldToEventLoop();
 
     const token = tokens[index];
+    if (overlapsAnyIssue(token, issues)) continue;
+
     const { correct, candidates } = checkToken(spell, token.value, { suggestionBudget });
-    if (correct || candidates.length === 0) continue;
+    if (correct) continue;
 
     issues.push({
       start: token.start,
@@ -192,5 +208,6 @@ module.exports = {
   fastSuggestions,
   getSpellChecker,
   normalizeSuggestions,
+  suggestWord,
   yieldToEventLoop,
 };
