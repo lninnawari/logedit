@@ -1,6 +1,8 @@
 const path = require("node:path");
 
 let spellPromise = null;
+const tokenCache = new Map();
+const maxTokenCacheSize = 10000;
 
 function dictionaryPath(filename) {
   return path.join(process.cwd(), "node_modules", "dictionary-ko", filename);
@@ -42,15 +44,34 @@ function normalizeSuggestions(word, suggestions) {
     .slice(0, 8);
 }
 
+function rememberTokenResult(word, result) {
+  if (tokenCache.size >= maxTokenCacheSize) {
+    tokenCache.delete(tokenCache.keys().next().value);
+  }
+  tokenCache.set(word, result);
+  return result;
+}
+
+function checkToken(spell, word) {
+  const cached = tokenCache.get(word);
+  if (cached) return cached;
+
+  if (spell.spellSync(word)) return rememberTokenResult(word, { correct: true, candidates: [] });
+
+  return rememberTokenResult(word, {
+    correct: false,
+    candidates: normalizeSuggestions(word, spell.suggestSync(word)),
+  });
+}
+
 async function checkChunk(text) {
   const originalText = String(text || "");
   if (!originalText.trim()) return [];
 
   const spell = await getSpellChecker();
   return collectKoreanTokens(originalText).flatMap((token) => {
-    if (spell.spellSync(token.value)) return [];
-
-    const candidates = normalizeSuggestions(token.value, spell.suggestSync(token.value));
+    const { correct, candidates } = checkToken(spell, token.value);
+    if (correct) return [];
     if (candidates.length === 0) return [];
 
     return [
@@ -67,6 +88,7 @@ async function checkChunk(text) {
 
 module.exports = {
   checkChunk,
+  checkToken,
   collectKoreanTokens,
   getSpellChecker,
   normalizeSuggestions,

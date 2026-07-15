@@ -41,7 +41,7 @@ function splitBlockText(block, maxChars) {
   return segments;
 }
 
-function splitIntoChunks(blocks, maxChars = 450) {
+function splitIntoChunks(blocks, maxChars = 2000) {
   const chunks = [];
   let current = { blocks: [], text: "" };
 
@@ -126,7 +126,6 @@ async function processChunks(jobId, chunks) {
       });
     } finally {
       job.completed += 1;
-      await new Promise((resolve) => setTimeout(resolve, 150));
     }
   }
 
