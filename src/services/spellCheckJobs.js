@@ -6,6 +6,10 @@ const { checkChunk } = require("./spellCheck");
 const jobs = new Map();
 const finishedJobTtlMs = 30 * 60 * 1000;
 
+function yieldToEventLoop() {
+  return new Promise((resolve) => setImmediate(resolve));
+}
+
 function findSplitPoint(text, start, maxEnd) {
   const preferred = ["\n", ". ", "? ", "! ", "。", " "];
   for (const marker of preferred) {
@@ -126,6 +130,7 @@ async function processChunks(jobId, chunks) {
       });
     } finally {
       job.completed += 1;
+      await yieldToEventLoop();
     }
   }
 
@@ -157,7 +162,9 @@ async function startSpellCheckJob(prisma, projectId) {
   });
 
   if (chunks.length > 0) {
-    processChunks(jobId, chunks);
+    setImmediate(() => {
+      processChunks(jobId, chunks);
+    });
   }
 
   return jobId;
@@ -236,4 +243,5 @@ module.exports = {
   remapOffsetsToBlocks,
   splitIntoChunks,
   startSpellCheckJob,
+  yieldToEventLoop,
 };
