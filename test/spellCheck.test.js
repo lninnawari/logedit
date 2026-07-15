@@ -2,7 +2,7 @@ const assert = require("node:assert/strict");
 const test = require("node:test");
 
 const { parseNaverResponse } = require("../src/services/spellCheck");
-const { remapOffsetsToBlocks, splitIntoChunks } = require("../src/services/spellCheckJobs");
+const { isRollResultBlock, remapOffsetsToBlocks, splitIntoChunks } = require("../src/services/spellCheckJobs");
 
 test("parses marked naver spellcheck issues", () => {
   const raw = JSON.stringify({
@@ -45,6 +45,16 @@ test("splits chunks without splitting blocks", () => {
   assert.equal(chunks.length, 2);
   assert.deepEqual(chunks[0].blocks.map((block) => block.blockId), ["a", "b"]);
   assert.deepEqual(chunks[1].blocks.map((block) => block.blockId), ["c"]);
+});
+
+test("detects roll result blocks for spellcheck exclusion", () => {
+  assert.equal(
+    isRollResultBlock({
+      rawHtml: '<div class="sheet-rolltemplate-coc"><table><tbody><tr><td>결과</td></tr></tbody></table></div>',
+    }),
+    true
+  );
+  assert.equal(isRollResultBlock({ rawHtml: '<div class="message general">대사</div>' }), false);
 });
 
 test("splits long blocks while preserving block offsets", () => {

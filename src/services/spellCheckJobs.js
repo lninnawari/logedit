@@ -69,6 +69,14 @@ function splitIntoChunks(blocks, maxChars = 450) {
   return chunks;
 }
 
+function isRollResultBlock(block) {
+  const rawHtml = String(block.rawHtml || "");
+  return (
+    /<(table|tbody|thead|tfoot|tr|td|th)\b/i.test(rawHtml) ||
+    /rolltemplate|sheet-rolltemplate|inlinerollresult|formattedformula/i.test(rawHtml)
+  );
+}
+
 function findOwningBlock(issue, chunk) {
   return [...chunk.blocks].reverse().find((block) => block.offsetInChunk <= issue.start);
 }
@@ -132,9 +140,9 @@ async function startSpellCheckJob(prisma, projectId) {
   const blocks = await prisma.messageBlock.findMany({
     where: { projectId, isDeleted: false, blockType: { not: "handout" } },
     orderBy: { orderIndex: "asc" },
-    select: { id: true, textContent: true },
+    select: { id: true, rawHtml: true, textContent: true },
   });
-  const chunks = splitIntoChunks(blocks);
+  const chunks = splitIntoChunks(blocks.filter((block) => !isRollResultBlock(block)));
   const jobId = randomUUID();
 
   jobs.set(jobId, {
@@ -225,6 +233,7 @@ async function applySpellCheckChanges(prisma, projectId, changes) {
 module.exports = {
   applySpellCheckChanges,
   getSpellCheckJob,
+  isRollResultBlock,
   remapOffsetsToBlocks,
   splitIntoChunks,
   startSpellCheckJob,

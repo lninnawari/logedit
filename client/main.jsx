@@ -1013,37 +1013,85 @@ function AddBlockForm({ onSubmit, onCancel }) {
   );
 }
 
+function issueReplacement(issue, replacements) {
+  return replacements[issue.id] ?? issue.candidates[0] ?? "";
+}
+
+function issueToChange(issue, replacement) {
+  return {
+    blockId: issue.blockId,
+    start: issue.start,
+    end: issue.end,
+    original: issue.original,
+    replacement,
+  };
+}
+
 function SpellCheckDialog({ issues, failures, blocks, isApplying, onApply, onClose }) {
-  const [checked, setChecked] = useState({});
   const [replacements, setReplacements] = useState({});
+  const [resolvedIds, setResolvedIds] = useState({});
+  const [currentIndex, setCurrentIndex] = useState(0);
   const blockMap = useMemo(() => new Map(blocks.map((block) => [block.id, block])), [blocks]);
+  const visibleIssues = issues.filter((issue) => !resolvedIds[issue.id]);
+  const activeIssue = visibleIssues[currentIndex] || visibleIssues[0] || null;
 
   useEffect(() => {
-    const nextChecked = {};
     const nextReplacements = {};
     issues.forEach((issue) => {
-      nextChecked[issue.id] = true;
       nextReplacements[issue.id] = issue.candidates[0] || "";
     });
-    setChecked(nextChecked);
     setReplacements(nextReplacements);
+    setResolvedIds({});
+    setCurrentIndex(0);
   }, [issues]);
 
-  function submitSelected() {
-    const changes = issues
-      .filter((issue) => checked[issue.id] && replacements[issue.id] !== undefined)
-      .map((issue) => ({
-        blockId: issue.blockId,
-        start: issue.start,
-        end: issue.end,
-        original: issue.original,
-        replacement: replacements[issue.id],
-      }));
+  useEffect(() => {
+    if (currentIndex >= visibleIssues.length) {
+      setCurrentIndex(Math.max(visibleIssues.length - 1, 0));
+    }
+  }, [currentIndex, visibleIssues.length]);
 
-    onApply(changes);
+  function resolveIssues(nextIssues) {
+    setResolvedIds((current) => {
+      const next = { ...current };
+      nextIssues.forEach((issue) => {
+        next[issue.id] = true;
+      });
+      return next;
+    });
   }
 
-  const selectedCount = issues.filter((issue) => checked[issue.id]).length;
+  function skipCurrent() {
+    if (!activeIssue) return;
+    resolveIssues([activeIssue]);
+  }
+
+  async function applyCurrent() {
+    if (!activeIssue) return;
+    const replacement = issueReplacement(activeIssue, replacements);
+    await onApply([issueToChange(activeIssue, replacement)], { closeOnDone: false });
+    resolveIssues([activeIssue]);
+  }
+
+  async function applyAllSame() {
+    if (!activeIssue) return;
+    const replacement = issueReplacement(activeIssue, replacements);
+    const sameIssues = visibleIssues.filter(
+      (issue) => issue.original === activeIssue.original && issueReplacement(issue, replacements) === replacement
+    );
+    await onApply(
+      sameIssues.map((issue) => issueToChange(issue, replacement)),
+      { closeOnDone: false }
+    );
+    resolveIssues(sameIssues);
+  }
+
+  const activeBlock = activeIssue ? blockMap.get(activeIssue.blockId) : null;
+  const activeReplacement = activeIssue ? issueReplacement(activeIssue, replacements) : "";
+  const sameCount = activeIssue
+    ? visibleIssues.filter((issue) => issue.original === activeIssue.original && issueReplacement(issue, replacements) === activeReplacement)
+        .length
+    : 0;
 
   return (
     <div className="modal-backdrop">
@@ -1054,60 +1102,162 @@ function SpellCheckDialog({ issues, failures, blocks, isApplying, onApply, onClo
         <header>
           <h2>맞춤법 검사</h2>
           <p>
-            {issues.length.toLocaleString()}개 후보 · {selectedCount.toLocaleString()}개 선택
+            {issues.length.toLocaleString()}개 후보 · {Math.min(currentIndex + 1, visibleIssues.length).toLocaleString()} /{" "}
+            {visibleIssues.length.toLocaleString()}
           </p>
         </header>
         {failures.length > 0 ? <p className="error-text">{failures.length.toLocaleString()}개 구간은 검사하지 못했습니다.</p> : null}
-        <div className="spellcheck-list">
-          {issues.map((issue) => {
-            const block = blockMap.get(issue.blockId);
-            return (
-              <article className="spellcheck-item" key={issue.id}>
-                <label className="spellcheck-check">
-                  <input
-                    type="checkbox"
-                    checked={Boolean(checked[issue.id])}
-                    onChange={(event) => setChecked((current) => ({ ...current, [issue.id]: event.target.checked }))}
-                  />
-                  <span>적용</span>
-                </label>
-                <div className="spellcheck-content">
-                  <div className="spellcheck-row">
-                    <span>기존</span>
-                    <strong>{issue.original}</strong>
-                  </div>
-                  <label className="spellcheck-row">
-                    <span>바꿈</span>
-                    <select
-                      value={replacements[issue.id] || ""}
-                      onChange={(event) => setReplacements((current) => ({ ...current, [issue.id]: event.target.value }))}
-                    >
-                      {issue.candidates.map((candidate) => (
-                        <option value={candidate} key={candidate}>
-                          {candidate || "(삭제)"}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  {issue.help ? (
-                    <div className="spellcheck-help">
-                      <span>사유</span>
-                      <p>{issue.help}</p>
-                    </div>
-                  ) : null}
-                  {block ? <p className="spellcheck-context">{block.textContent}</p> : null}
-                </div>
-              </article>
-            );
-          })}
-        </div>
+        {activeIssue ? (
+          <article className="spellcheck-card">
+            <div className="spellcheck-row">
+              <span>기존</span>
+              <strong>{activeIssue.original}</strong>
+            </div>
+            <label className="spellcheck-row">
+              <span>바꿈</span>
+              <select
+                value={activeReplacement}
+                onChange={(event) => setReplacements((current) => ({ ...current, [activeIssue.id]: event.target.value }))}
+              >
+                {activeIssue.candidates.map((candidate) => (
+                  <option value={candidate} key={candidate}>
+                    {candidate || "(삭제)"}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {activeIssue.help ? (
+              <div className="spellcheck-help">
+                <span>사유</span>
+                <p>{activeIssue.help}</p>
+              </div>
+            ) : null}
+            {activeBlock ? <p className="spellcheck-context">{activeBlock.textContent}</p> : null}
+            {sameCount > 1 ? <p className="muted-text">같은 제안 {sameCount.toLocaleString()}개</p> : null}
+          </article>
+        ) : (
+          <div className="spellcheck-empty">검사를 모두 확인했습니다.</div>
+        )}
         <footer className="spellcheck-footer">
           <button type="button" className="secondary" onClick={onClose}>
             닫기
           </button>
-          <button type="button" className="primary-button" onClick={submitSelected} disabled={isApplying || selectedCount === 0}>
+          <button type="button" className="secondary" onClick={() => setCurrentIndex((value) => Math.max(value - 1, 0))} disabled={currentIndex === 0}>
+            이전
+          </button>
+          <button
+            type="button"
+            className="secondary"
+            onClick={() => setCurrentIndex((value) => Math.min(value + 1, visibleIssues.length - 1))}
+            disabled={!activeIssue || currentIndex >= visibleIssues.length - 1}
+          >
+            다음
+          </button>
+          <button type="button" className="secondary" onClick={skipCurrent} disabled={!activeIssue || isApplying}>
+            건너뛰기
+          </button>
+          <button type="button" className="secondary" onClick={applyAllSame} disabled={!activeIssue || isApplying || sameCount < 2}>
+            모두 바꾸기
+          </button>
+          <button type="button" className="primary-button" onClick={applyCurrent} disabled={!activeIssue || isApplying}>
             {isApplying ? <Loader2 className="spin" size={16} /> : <Check size={16} />}
-            선택 적용
+            바꾸기
+          </button>
+        </footer>
+      </section>
+    </div>
+  );
+}
+
+function FindReplaceDialog({ blocks, isApplying, onApply, onClose }) {
+  const [findText, setFindText] = useState("");
+  const [replaceText, setReplaceText] = useState("");
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const searchableBlocks = blocks.filter((block) => block.blockType !== "handout");
+  const matches = useMemo(() => {
+    if (!findText) return [];
+    return searchableBlocks.flatMap((block) => {
+      const text = String(block.textContent || "");
+      const found = [];
+      let index = text.indexOf(findText);
+      while (index >= 0) {
+        found.push({ block, start: index, end: index + findText.length });
+        index = text.indexOf(findText, index + Math.max(findText.length, 1));
+      }
+      return found;
+    });
+  }, [findText, searchableBlocks]);
+
+  useEffect(() => {
+    setCurrentIndex(0);
+  }, [findText]);
+
+  const activeMatch = matches[currentIndex] || null;
+
+  function matchToChange(match) {
+    return {
+      blockId: match.block.id,
+      start: match.start,
+      end: match.end,
+      original: findText,
+      replacement: replaceText,
+    };
+  }
+
+  async function replaceCurrent() {
+    if (!activeMatch) return;
+    await onApply([matchToChange(activeMatch)], { closeOnDone: false });
+    setCurrentIndex((value) => Math.min(value, Math.max(matches.length - 2, 0)));
+  }
+
+  async function replaceAll() {
+    if (matches.length === 0) return;
+    await onApply(matches.map(matchToChange), { closeOnDone: false });
+    onClose();
+  }
+
+  return (
+    <div className="modal-backdrop">
+      <section className="modal-panel find-replace-panel">
+        <button type="button" className="icon-button modal-close" onClick={onClose} title="닫기">
+          <X size={16} />
+        </button>
+        <header>
+          <h2>찾기/바꾸기</h2>
+          <p>
+            {matches.length.toLocaleString()}개 발견 · {matches.length ? currentIndex + 1 : 0} / {matches.length.toLocaleString()}
+          </p>
+        </header>
+        <label>
+          찾기
+          <input value={findText} onChange={(event) => setFindText(event.target.value)} autoFocus />
+        </label>
+        <label>
+          바꾸기
+          <input value={replaceText} onChange={(event) => setReplaceText(event.target.value)} />
+        </label>
+        {activeMatch ? <p className="spellcheck-context">{activeMatch.block.textContent}</p> : null}
+        <footer className="spellcheck-footer">
+          <button type="button" className="secondary" onClick={onClose}>
+            닫기
+          </button>
+          <button type="button" className="secondary" onClick={() => setCurrentIndex((value) => Math.max(value - 1, 0))} disabled={currentIndex === 0}>
+            이전
+          </button>
+          <button
+            type="button"
+            className="secondary"
+            onClick={() => setCurrentIndex((value) => Math.min(value + 1, matches.length - 1))}
+            disabled={!activeMatch || currentIndex >= matches.length - 1}
+          >
+            다음
+          </button>
+          <button type="button" className="secondary" onClick={replaceAll} disabled={isApplying || matches.length === 0}>
+            모두 바꾸기
+          </button>
+          <button type="button" className="primary-button" onClick={replaceCurrent} disabled={isApplying || !activeMatch}>
+            {isApplying ? <Loader2 className="spin" size={16} /> : <Check size={16} />}
+            바꾸기
           </button>
         </footer>
       </section>
@@ -1374,6 +1524,7 @@ function Editor({ projectId, token }) {
     error: "",
   });
   const [spellDialogOpen, setSpellDialogOpen] = useState(false);
+  const [findReplaceOpen, setFindReplaceOpen] = useState(false);
   const [spellApplying, setSpellApplying] = useState(false);
   const [state, setState] = useState("loading");
   const [error, setError] = useState("");
@@ -1516,8 +1667,9 @@ function Editor({ projectId, token }) {
     }
   }
 
-  async function applySpellCheckChanges(changes) {
+  async function applySpellCheckChanges(changes, options = {}) {
     if (!adminToken || changes.length === 0) return;
+    const { closeOnDone = true } = options;
     setSpellApplying(true);
     try {
       const result = await api(`/api/projects/${projectId}/spellcheck/apply`, {
@@ -1526,20 +1678,25 @@ function Editor({ projectId, token }) {
         body: JSON.stringify({ changes }),
       });
       updateBlocks(result.updatedBlocks || []);
-      setSpellDialogOpen(false);
-      setSpellCheck({
-        status: "idle",
-        total: 0,
-        completed: 0,
-        results: [],
-        failures: [],
-        error: "",
-      });
+      if (closeOnDone) {
+        setSpellDialogOpen(false);
+        setFindReplaceOpen(false);
+        setSpellCheck({
+          status: "idle",
+          total: 0,
+          completed: 0,
+          results: [],
+          failures: [],
+          error: "",
+        });
+      }
       if (result.skipped?.length) {
         window.alert(`${result.skipped.length.toLocaleString()}개 항목은 본문이 바뀌어 건너뛰었습니다.`);
       }
+      return result;
     } catch (err) {
       setSpellCheck((current) => ({ ...current, error: err.message }));
+      throw err;
     } finally {
       setSpellApplying(false);
     }
@@ -1597,6 +1754,11 @@ function Editor({ projectId, token }) {
         </div>
         <div className="topbar-actions">
           {adminToken ? (
+            <button type="button" className="secondary" onClick={() => setFindReplaceOpen(true)}>
+              찾기/바꾸기
+            </button>
+          ) : null}
+          {adminToken ? (
             <button type="button" className="secondary" onClick={startSpellCheck} disabled={spellCheck.status === "running"}>
               {spellCheck.status === "running" ? <Loader2 className="spin" size={14} /> : <Check size={14} />}
               맞춤법 검사
@@ -1634,6 +1796,14 @@ function Editor({ projectId, token }) {
             <div className="spellcheck-progress">맞춤법 검사 후보가 없습니다.</div>
           ) : null}
           {spellCheck.status === "error" ? <div className="spellcheck-progress error-text">{spellCheck.error}</div> : null}
+          {findReplaceOpen ? (
+            <FindReplaceDialog
+              blocks={blocks}
+              isApplying={spellApplying}
+              onApply={applySpellCheckChanges}
+              onClose={() => setFindReplaceOpen(false)}
+            />
+          ) : null}
           {spellDialogOpen ? (
             <SpellCheckDialog
               issues={spellCheck.results}

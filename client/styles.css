@@ -836,6 +836,38 @@ textarea {
   padding: 12px;
 }
 
+.spellcheck-card,
+.find-replace-panel {
+  background: #ffffff;
+  border: 1px solid #dfe9e4;
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+}
+
+.spellcheck-empty {
+  align-items: center;
+  background: #f8fbf9;
+  border: 1px solid #dfe9e4;
+  border-radius: 8px;
+  color: #66746f;
+  display: flex;
+  justify-content: center;
+  min-height: 120px;
+}
+
+.find-replace-panel {
+  max-width: 620px;
+}
+
+.find-replace-panel label {
+  color: #31433d;
+  display: grid;
+  font-size: 13px;
+  gap: 6px;
+}
+
 .spellcheck-check {
   align-items: center;
   color: #50645d;
