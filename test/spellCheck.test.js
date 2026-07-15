@@ -1,45 +1,40 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
 
-const { parseNaverResponse } = require("../src/services/spellCheck");
+const { checkChunk, collectKoreanTokens, normalizeSuggestions } = require("../src/services/spellCheck");
 const { isRollResultBlock, remapOffsetsToBlocks, splitIntoChunks } = require("../src/services/spellCheckJobs");
 
-test("parses marked naver spellcheck issues", () => {
-  const raw = JSON.stringify({
-    message: {
-      result: {
-        origin_html:
-          "<span class='result_underline'>안녕 하세요.</span> <span class='result_underline'>작성됬습니다.</span>",
-        html: "<em class='green_text'>안녕하세요.</em> <em class='red_text'>작성됐습니다.</em>",
-        notag_html: "안녕하세요. 작성됐습니다.",
-      },
-    },
-  });
+test("collects Korean token offsets", () => {
+  assert.deepEqual(collectKoreanTokens("GM: 안녕 하세요 123"), [
+    { value: "안녕", start: 4, end: 6 },
+    { value: "하세요", start: 7, end: 10 },
+  ]);
+});
 
-  const issues = parseNaverResponse(raw, "안녕 하세요. 작성됬습니다.");
+test("normalizes Hunspell suggestions", () => {
+  assert.deepEqual(normalizeSuggestions("됬다", ["됐다", "됐다", "됬다", "되었다"]), ["됐다", "되었다"]);
+});
+
+test("checks Korean text with Hunspell dictionary", async () => {
+  const issues = await checkChunk("작성됬다 안녕하세여 맛춤법");
 
   assert.deepEqual(
-    issues.map((issue) => ({
-      start: issue.start,
-      end: issue.end,
-      original: issue.original,
-      candidates: issue.candidates,
-    })),
-    [
-      { start: 0, end: 7, original: "안녕 하세요.", candidates: ["안녕하세요."] },
-      { start: 8, end: 15, original: "작성됬습니다.", candidates: ["작성됐습니다."] },
-    ]
+    issues.map((issue) => issue.original),
+    ["작성됬다", "안녕하세여", "맛춤법"]
   );
+  assert.ok(issues[0].candidates.includes("작성됐다"));
+  assert.ok(issues[1].candidates.includes("안녕하세요"));
+  assert.ok(issues[2].candidates.includes("맞춤법"));
 });
 
 test("splits chunks without splitting blocks", () => {
   const chunks = splitIntoChunks(
     [
       { id: "a", textContent: "하나 둘" },
-      { id: "b", textContent: "셋 넷" },
+      { id: "b", textContent: "셋넷" },
       { id: "c", textContent: "다섯" },
     ],
-    10
+    7
   );
 
   assert.equal(chunks.length, 2);
@@ -54,16 +49,16 @@ test("detects roll result blocks for spellcheck exclusion", () => {
     }),
     true
   );
-  assert.equal(isRollResultBlock({ rawHtml: '<div class="message general">대사</div>' }), false);
+  assert.equal(isRollResultBlock({ rawHtml: '<div class="message general">대화</div>' }), false);
 });
 
 test("splits long blocks while preserving block offsets", () => {
-  const chunks = splitIntoChunks([{ id: "a", textContent: "첫문장입니다. 둘째문장입니다." }], 8);
+  const chunks = splitIntoChunks([{ id: "a", textContent: "첫문장입니다. 두번째문장입니다." }], 8);
 
   assert.ok(chunks.length > 1);
   const secondChunk = chunks[1];
   const remapped = remapOffsetsToBlocks(
-    [{ start: 0, end: 2, original: "둘째", candidates: ["두번째"], help: "맞춤법" }],
+    [{ start: 0, end: 2, original: "두번", candidates: ["두 번째"], help: "맞춤법" }],
     secondChunk
   );
 
@@ -75,15 +70,15 @@ test("remaps chunk offsets to block-local offsets", () => {
   const chunks = splitIntoChunks(
     [
       { id: "a", textContent: "문장 하나" },
-      { id: "b", textContent: "됬다" },
+      { id: "b", textContent: "둘다" },
     ],
     10
   );
   const chunk = chunks[0];
-  const issueStart = chunk.text.indexOf("됬다");
+  const issueStart = chunk.text.indexOf("둘다");
 
   const remapped = remapOffsetsToBlocks(
-    [{ start: issueStart, end: issueStart + 2, original: "됬다", candidates: ["됐다"], help: "맞춤법" }],
+    [{ start: issueStart, end: issueStart + 2, original: "둘다", candidates: ["둘 다"], help: "맞춤법" }],
     chunk
   );
 
