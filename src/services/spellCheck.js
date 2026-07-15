@@ -7,7 +7,8 @@ const maxSuggestTokenLength = 30;
 const tokensPerYield = 10;
 const defaultSuggestionLimit = 300;
 const enableExpensiveSuggestions = process.env.HUNSPELL_SUGGEST === "true";
-const minSuspiciousTokenLength = 3;
+const includeSuspiciousWords = process.env.SPELLCHECK_INCLUDE_SUSPICIOUS === "true";
+const minSuspiciousTokenLength = 4;
 
 function yieldToEventLoop() {
   return new Promise((resolve) => setImmediate(resolve));
@@ -171,7 +172,7 @@ function overlapsAnyIssue(token, issues) {
 }
 
 function shouldListSuspiciousWord(word, candidates) {
-  return candidates.length > 0 || word.length >= minSuspiciousTokenLength;
+  return candidates.length > 0 || (includeSuspiciousWords && word.length >= minSuspiciousTokenLength);
 }
 
 async function checkChunk(text, options = {}) {

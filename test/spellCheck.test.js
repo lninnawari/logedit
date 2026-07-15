@@ -55,18 +55,16 @@ test("checks Korean text with Hunspell dictionary", async () => {
   assert.ok(issues[2].candidates.includes("맞춤법"));
 });
 
-test("keeps suspicious words even when no fast suggestion exists", async () => {
+test("hides suspicious words without suggestions by default", async () => {
   const issues = await checkChunk("퀘스쳔");
 
-  assert.equal(issues.length, 1);
-  assert.equal(issues[0].original, "퀘스쳔");
-  assert.deepEqual(issues[0].candidates, []);
+  assert.equal(issues.length, 0);
 });
 
 test("filters very short suspicious words without suggestions", () => {
   assert.equal(shouldListSuspiciousWord("가", []), false);
   assert.equal(shouldListSuspiciousWord("가나", []), false);
-  assert.equal(shouldListSuspiciousWord("가나다", []), true);
+  assert.equal(shouldListSuspiciousWord("가나다", []), false);
   assert.equal(shouldListSuspiciousWord("가", ["나"]), true);
 });
 
