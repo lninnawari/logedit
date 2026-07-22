@@ -15,6 +15,7 @@ const { generateSharePassword } = require("../services/passwords");
 const {
   applySpellCheckChanges,
   getSpellCheckJob,
+  runSpellCheck,
   startSpellCheckJob,
 } = require("../services/spellCheckJobs");
 const { suggestWord } = require("../services/spellCheck");
@@ -297,6 +298,20 @@ router.patch(
     });
 
     res.json(settings);
+  })
+);
+
+router.post(
+  "/:id/spellcheck/run",
+  asyncHandler(async (req, res) => {
+    const project = await prisma.project.findUnique({
+      where: { id: req.params.id },
+      select: { id: true },
+    });
+    if (!project) return res.status(404).json({ error: "Project not found." });
+
+    const result = await runSpellCheck(prisma, req.params.id);
+    res.json(result);
   })
 );
 

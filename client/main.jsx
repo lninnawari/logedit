@@ -1668,29 +1668,19 @@ function Editor({ projectId, token }) {
     });
 
     try {
-      const started = await api(`/api/projects/${projectId}/spellcheck/start`, {
+      const status = await api(`/api/projects/${projectId}/spellcheck/run`, {
         method: "POST",
         headers: { Authorization: `Bearer ${adminToken}` },
       });
 
-      let finished = false;
-      let lastStatus = null;
-      while (!finished) {
-        await new Promise((resolve) => setTimeout(resolve, 1200));
-        const status = await api(`/api/projects/${projectId}/spellcheck/status/${started.jobId}`, {
-          headers: { Authorization: `Bearer ${adminToken}` },
-        });
-        lastStatus = status;
-        setSpellCheck({ ...status, error: "" });
-        finished = status.status === "done";
-      }
+      setSpellCheck({ ...status, error: "" });
 
-      if (lastStatus?.results?.length) {
+      if (status?.results?.length) {
         setSpellDialogOpen(true);
-      } else if (lastStatus?.failures?.length) {
-        const failureMessage = lastStatus.failures[0]?.message;
+      } else if (status?.failures?.length) {
+        const failureMessage = status.failures[0]?.message;
         setSpellCheck({
-          ...lastStatus,
+          ...status,
           status: "error",
           error: failureMessage
             ? `맞춤법 검사기에 연결하지 못했습니다: ${failureMessage}`

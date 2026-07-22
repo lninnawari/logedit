@@ -170,15 +170,48 @@ async function processChunks(jobId, chunks) {
   job.finishedAt = Date.now();
 }
 
-async function startSpellCheckJob(prisma, projectId) {
-  cleanupJobs();
-
+async function buildSpellCheckChunks(prisma, projectId) {
   const blocks = await prisma.messageBlock.findMany({
     where: { projectId, isDeleted: false, blockType: { not: "handout" } },
     orderBy: { orderIndex: "asc" },
     select: { id: true, rawHtml: true, textContent: true },
   });
-  const chunks = splitIntoChunks(blocks.filter((block) => !isRollResultBlock(block)));
+  return splitIntoChunks(blocks.filter((block) => !isRollResultBlock(block)));
+}
+
+async function runSpellCheck(prisma, projectId) {
+  const chunks = await buildSpellCheckChunks(prisma, projectId);
+  const suggestionBudget = createSuggestionBudget();
+  const results = [];
+  const failures = [];
+
+  for (const chunk of chunks) {
+    try {
+      const issues = await checkChunk(chunk.text, { suggestionBudget });
+      results.push(...remapOffsetsToBlocks(issues, chunk));
+    } catch (error) {
+      failures.push({
+        blockIds: chunk.blocks.map((block) => block.blockId),
+        message: error.message,
+      });
+    } finally {
+      await yieldToEventLoop();
+    }
+  }
+
+  return {
+    status: "done",
+    total: chunks.length,
+    completed: chunks.length,
+    results: groupIssues(results),
+    failures,
+  };
+}
+
+async function startSpellCheckJob(prisma, projectId) {
+  cleanupJobs();
+
+  const chunks = await buildSpellCheckChunks(prisma, projectId);
   const jobId = randomUUID();
 
   jobs.set(jobId, {
@@ -274,6 +307,7 @@ module.exports = {
   isRollResultBlock,
   groupIssues,
   remapOffsetsToBlocks,
+  runSpellCheck,
   splitIntoChunks,
   startSpellCheckJob,
   yieldToEventLoop,

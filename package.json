@@ -13,6 +13,7 @@
     "build": "vite build",
     "render:build": "npm run prisma:generate && npm run build",
     "render:start": "prisma migrate deploy && npm start",
+    "vercel:build": "prisma generate && vite build",
     "test": "node --test",
     "release:check": "npm run prisma:validate && npm run prisma:generate && npm test && npm run render:build && npm run electron:pack",
     "analyze:html": "node scripts/analyze-html.js",

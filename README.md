@@ -2,7 +2,7 @@
 
 TRPG chat log editor and correction tool for turning HTML chat archives into clean TXT manuscripts.
 
-This repository is now aimed at a hosted upload workflow. The operator runs one Render/Neon-backed web service, creates one-time upload links for log owners, and uses the admin page to produce clean TXT before InDesign work. See `docs/editions.md` for edition boundaries, `docs/deployment.md` for Render/Neon deployment, and `docs/security.md` for security notes.
+This repository is now aimed at a hosted upload workflow. The operator creates one-time upload links for log owners and uses the admin page to produce clean TXT before InDesign work. See `docs/editions.md` for edition boundaries, `docs/vercel-deployment.md` for the current serverless deployment path, `docs/deployment.md` for the backed-up Render/always-on path, and `docs/security.md` for security notes.
 
 ## Current Stack
 
@@ -50,7 +50,7 @@ npm start
 
 9. Open the admin page and create the first administrator account in the browser.
 
-For Render deployment, see `docs/deployment.md`.
+For the current serverless deployment path, see `docs/vercel-deployment.md`. For the backed-up always-on Render deployment path, see `docs/deployment.md`.
 
 Generate a `JWT_SECRET` with:
 
