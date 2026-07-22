@@ -29,6 +29,15 @@ test("builds fast Korean typo suggestions without Hunspell suggest", () => {
   assert.deepEqual(fastSuggestions("맛춤법"), ["맞춤법"]);
 });
 
+test("builds broad typo rule suggestions", () => {
+  assert.deepEqual(fastSuggestions("되요"), ["돼요"]);
+  assert.deepEqual(fastSuggestions("뵈요"), ["봬요"]);
+  assert.deepEqual(fastSuggestions("어떻해"), ["어떡해"]);
+  assert.deepEqual(fastSuggestions("오랫만"), ["오랜만"]);
+  assert.deepEqual(fastSuggestions("역활"), ["역할"]);
+  assert.deepEqual(fastSuggestions("깨끗히"), ["깨끗이"]);
+});
+
 test("collects common Korean spacing issues", () => {
   const issues = collectSpacingIssues("아닐텐데 할수있다 그럴것같다 없을테니까");
 
@@ -39,6 +48,22 @@ test("collects common Korean spacing issues", () => {
       ["할수있다", "할 수 있다"],
       ["그럴것같다", "그럴 것 같다"],
       ["없을테니까", "없을 테니까"],
+    ]
+  );
+});
+
+test("collects broad Korean spacing candidates", () => {
+  const issues = collectSpacingIssues("할수밖에 모를줄알았다 아는척하고 그런듯하다 믿을만하다 그럴뿐이다");
+
+  assert.deepEqual(
+    issues.map((issue) => [issue.original, issue.candidates[0]]),
+    [
+      ["할수밖에", "할 수밖에"],
+      ["모를줄알았다", "모를 줄 알았다"],
+      ["아는척하고", "아는 척하고"],
+      ["그런듯하다", "그런 듯하다"],
+      ["믿을만하다", "믿을 만하다"],
+      ["그럴뿐이다", "그럴 뿐이다"],
     ]
   );
 });

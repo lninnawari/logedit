@@ -58,11 +58,58 @@ function fastSuggestions(word) {
   const suggestions = [];
   const replacements = [
     ["됬", "됐"],
+    ["됀", "된"],
+    ["됄", "될"],
+    ["됍", "됩"],
     ["되요", "돼요"],
+    ["되서", "돼서"],
+    ["되야", "돼야"],
+    ["되도", "돼도"],
+    ["뵈요", "봬요"],
+    ["뵈어", "봬"],
+    ["뵈었", "뵀"],
+    ["할께", "할게"],
+    ["갈께", "갈게"],
+    ["볼께", "볼게"],
+    ["줄께", "줄게"],
+    ["올께", "올게"],
+    ["할껄", "할걸"],
+    ["갈껄", "갈걸"],
+    ["볼껄", "볼걸"],
+    ["줄껄", "줄걸"],
+    ["어떻해", "어떡해"],
+    ["어떻하지", "어떡하지"],
+    ["어떻하", "어떡하"],
     ["맛춤", "맞춤"],
     ["몇일", "며칠"],
+    ["웬지", "왠지"],
     ["왠만", "웬만"],
+    ["왠일", "웬일"],
+    ["왠걸", "웬걸"],
     ["금새", "금세"],
+    ["요세", "요새"],
+    ["구지", "굳이"],
+    ["오랫만", "오랜만"],
+    ["역활", "역할"],
+    ["희안", "희한"],
+    ["설겆", "설거지"],
+    ["설레임", "설렘"],
+    ["깨끗히", "깨끗이"],
+    ["틈틈히", "틈틈이"],
+    ["곰곰히", "곰곰이"],
+    ["일일히", "일일이"],
+    ["번번히", "번번이"],
+    ["가르키", "가리키"],
+    ["가르켜", "가리켜"],
+    ["무릎쓰", "무릅쓰"],
+    ["통채", "통째"],
+    ["닥달", "닦달"],
+    ["뒤치닥", "뒤치다꺼"],
+    ["널부러", "널브러"],
+    ["나즈막", "나지막"],
+    ["바램", "바람"],
+    ["뇌졸증", "뇌졸중"],
+    ["삼가해", "삼가"],
   ];
 
   for (const [from, to] of replacements) {
@@ -89,12 +136,48 @@ const spacingRules = [
     replacement: (word) => word.replace("수있", " 수 있").replace("수없", " 수 없"),
   },
   {
+    pattern: /[가-힣]+수밖에/g,
+    replacement: (word) => word.replace("수밖에", " 수밖에"),
+  },
+  {
+    pattern: /[가-힣]+줄(?:알|모르)[가-힣]*/g,
+    replacement: (word) => word.replace("줄알", " 줄 알").replace("줄모르", " 줄 모르"),
+  },
+  {
     pattern: /[가-힣]+것같[가-힣]*/g,
     replacement: (word) => word.replace("것같", " 것 같"),
   },
   {
     pattern: /[가-힣]+거같[가-힣]*/g,
     replacement: (word) => word.replace("거같", " 거 같"),
+  },
+  {
+    pattern: /[가-힣]+듯하[가-힣]*/g,
+    replacement: (word) => word.replace("듯하", " 듯하"),
+  },
+  {
+    pattern: /[가-힣]+듯싶[가-힣]*/g,
+    replacement: (word) => word.replace("듯싶", " 듯싶"),
+  },
+  {
+    pattern: /[가-힣]+척하[가-힣]*/g,
+    replacement: (word) => word.replace("척하", " 척하"),
+  },
+  {
+    pattern: /[가-힣]+만하[가-힣]*/g,
+    replacement: (word) => word.replace("만하", " 만하"),
+  },
+  {
+    pattern: /[가-힣]+법하[가-힣]*/g,
+    replacement: (word) => word.replace("법하", " 법하"),
+  },
+  {
+    pattern: /[가-힣]+뻔하[가-힣]*/g,
+    replacement: (word) => word.replace("뻔하", " 뻔하"),
+  },
+  {
+    pattern: /[가-힣]+뿐(?:이다|만|이라|인데|이고|이|은|을|에)?/g,
+    replacement: (word) => word.replace("뿐", " 뿐"),
   },
 ];
 
@@ -141,7 +224,7 @@ function checkToken(spell, word, options = {}) {
   if (cached) return cached;
 
   if (spell.spellSync(word)) return rememberTokenResult(word, { correct: true, candidates: [] });
-  const cheapCandidates = fastSuggestions(word).filter((candidate) => spell.spellSync(candidate));
+  const cheapCandidates = fastSuggestions(word);
   if (cheapCandidates.length > 0) return rememberTokenResult(word, { correct: false, candidates: cheapCandidates });
   if (!enableExpensiveSuggestions) return rememberTokenResult(word, { correct: false, candidates: [] });
   if (word.length > maxSuggestTokenLength) return rememberTokenResult(word, { correct: false, candidates: [] });
@@ -162,7 +245,7 @@ async function suggestWord(word) {
   if (!normalizedWord || normalizedWord.length > maxSuggestTokenLength) return [];
 
   const spell = await getSpellChecker();
-  const fast = fastSuggestions(normalizedWord).filter((candidate) => spell.spellSync(candidate));
+  const fast = fastSuggestions(normalizedWord);
   const hunspell = spell.spellSync(normalizedWord) ? [] : normalizeSuggestions(normalizedWord, spell.suggestSync(normalizedWord));
   return normalizeSuggestions(normalizedWord, [...fast, ...hunspell]);
 }
